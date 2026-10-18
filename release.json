@@ -1,0 +1,9 @@
+{
+  "id": "most",
+  "url": "https://usion-most.vercel.app",
+  "usions_url": "https://usions.com/chat/iframe/most?mode=single",
+  "image": "https://usion-most.vercel.app/icon-v1.svg",
+  "icon_sha256": "0773ce4da62577bbff407f8b4d1ae16a0b4d6e57276934eb2d31291d1deb1718",
+  "sdk": "2.33.0-dev.3",
+  "platform_commit": "7b14b46726603e0948375f1956b95850c6ab7fa3"
+}

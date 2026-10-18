@@ -45,3 +45,25 @@ ties, replay, and recovery equivalence. `scripts/browser-test.mjs` exercises
 multiple browser clients using the actual SDK recovery module with a test relay.
 Production still needs real authenticated web/native smoke tests; a simulated
 relay is not evidence of device verification.
+
+## Release verification — October 19, 2026
+
+- Registered publicly as `most`; 2–16 players, leaderboard disabled.
+- Public HTML, pinned SDK and registry image bytes match the committed assets.
+- Seven game-model tests; four browser clients cover a complete match, immediate
+  reveals, one stamp, unchanged card height, reload, rematch, late join, host
+  replacement and the absence grace period.
+- Live production smoke: three real socket connections and one absent group
+  candidate; group invite binding, scoped REST reads, 403 access denials, vote
+  delivery and checkpoint recovery passed. Disposable fixtures were removed.
+- Actual Usions web iframe and host friend picker UI opened successfully;
+  the picker was cancelled without sending real invitations.
+- iOS Simulator validation remains pending: the existing simulator asks to
+  take over the account's encrypted-chat session. We did not sign out the
+  user's active device or install a native build.
+- Platform SDK v2 checks pass (362 tests plus types/assets/consumer inventory).
+  The separate SDK-v3 job still fails its existing source-map-js audit, and
+  npm publication returns an existing registry-permission 404. Neither is
+  needed by Most, which loads the verified platform-hosted pinned v2 asset.
+- Very large candidate profiles are rejected at Start if they would exceed
+  the relay checkpoint budget; no group members are silently truncated.
