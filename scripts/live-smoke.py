@@ -29,8 +29,8 @@ async def main():
             clients.append(c)
             ack=await c.call('game:join',{'room_id':room},timeout=15)
             assert ack.get('success'), ack
-        ack=await clients[0].call('group:message',{'conversation_id':group,'content':'','components':[{'type':'game_invite','room_id':room,'service_id':'most'}]},timeout=15)
-        assert not ack.get('error'),ack
+        ack=await clients[0].call('group:message:send',{'conversation_id':group,'content':'','components':[{'type':'game_invite','room_id':room,'service_id':'most'}]},timeout=15)
+        assert not (ack or {}).get('error'),ack
         stored=await db.game_rooms.find_one({'id':room})
         assert stored.get('participant_group_id')==group, 'Group invite lost its source'
         async with httpx.AsyncClient(timeout=20) as http:
@@ -67,7 +67,11 @@ async def main():
         await db.conversations.delete_one({'id':group})
         await db.users.delete_many({'id':{'$in':users}})
         await db.game_actions.delete_many({'room_id':room})
+        from services.redis.connection import get_redis
+        redis=await get_redis()
+        keys=[k async for k in redis.scan_iter(match='*'+prefix+'*',count=100)]
+        if keys: await redis.delete(*keys)
         dbclient.close()
-        print('Disposable MongoDB test fixtures removed; transient relay keys expire normally.')
+        print('Disposable MongoDB and Redis test fixtures removed.')
 
 asyncio.run(main())
