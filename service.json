@@ -1,0 +1,1 @@
+{"id":"most","name":"Most","description":"Who is most likely? Pick your friends across 15 questions and see everyone’s votes live.","tags":["game","multiplayer"],"min_players":2,"max_players":16,"leaderboard":{"enabled":false,"order":"desc"},"realtime":{"connection_mode":"platform"}}

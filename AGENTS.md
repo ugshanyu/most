@@ -1,0 +1,6 @@
+- Read README.md and docs/HANDOFF.md before changing the app.
+- Edit src/, not generated public/index.html. Run npm test and npm run build.
+- Keep live visible votes, locked picks, all ties, EN/MN, and reconnect recovery.
+- No leaderboard or automatic profile posting.
+- Never bundle the test relay into production or commit secrets/.vercel.
+- Main deploys production; preserve other collaborators' changes.

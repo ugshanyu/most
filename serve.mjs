@@ -1,0 +1,3 @@
+import http from 'node:http';
+import {readFile} from 'node:fs/promises';
+http.createServer(async(req,res)=>{try{const u=new URL(req.url,'http://localhost');const file=u.pathname==='/icon-v1.svg'?'public/icon-v1.svg':'public/index.html';const body=await readFile(new URL(file,import.meta.url));res.writeHead(200,{'Content-Type':file.endsWith('.svg')?'image/svg+xml':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(body);}catch{res.writeHead(500);res.end('Build first: npm run build');}}).listen(Number(process.env.PORT||3050),'127.0.0.1',()=>console.log('Most: http://localhost:3050'));
