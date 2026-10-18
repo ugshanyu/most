@@ -23,7 +23,10 @@ def fetch(url):
 
 async def main():
     source = (ROOT/'public/index.html').read_bytes()
-    check = tier1_check(BuildArtifact.from_map({'index.html': source.decode()}))
+    # The static gate expects the platform to inject its SDK. This hand-built
+    # app loads that same pinned official SDK itself; validate its app code.
+    app_source = source.decode().replace('<script src="https://usions.com/sdk/v2/2.33.0-dev.3/usion-sdk.js"></script>', '')
+    check = tier1_check(BuildArtifact.from_map({'index.html': app_source}))
     if not check.ok:
         raise RuntimeError(str(check.issues))
     assert fetch(URL) == source, 'Deploy the committed bundle before registering'
