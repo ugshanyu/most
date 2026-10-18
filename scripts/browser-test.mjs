@@ -9,7 +9,7 @@ const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html');
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:390,height:844}});
-await context.route('https://usions.com/usion-sdk.js',r=>r.fulfill({contentType:'text/javascript',body:relay+'\n'+reliability+'\napplyGameReliability(window.Usion.game, window.Usion);'}));
+await context.route('https://usions.com/sdk/v2/2.33.0-dev.3/usion-sdk.js',r=>r.fulfill({contentType:'text/javascript',body:relay+'\n'+reliability+'\napplyGameReliability(window.Usion.game, window.Usion);'}));
 const pages=new Map(),joined=new Set(),connected=new Set(),actions=[],errors=[];let checkpoint;
 const people=[{id:'a',name:'Alex'},{id:'b',name:'Sam'},{id:'c',name:'Jamie'},{id:'d',name:'River'}];
 const dispatch=async(type,data)=>{await Promise.all([...pages.entries()].filter(([id])=>connected.has(id)).map(([,p])=>p.evaluate(({type,data})=>window.testEmit(type,data),{type,data})));};
