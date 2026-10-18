@@ -57,7 +57,7 @@ async def main():
         from services.redis.connection import get_redis
         try:
             redis = await get_redis()
-            keys = [key async for key in redis.scan_iter(match='service-listing:*',count=100)]
+            keys = [key async for key in redis.scan_iter(match='svclist:*',count=100)]
             if keys: await redis.delete(*keys)
         except Exception:
             print('Listing cache will refresh at its normal 60-second TTL.')
