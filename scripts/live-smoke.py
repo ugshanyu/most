@@ -25,7 +25,7 @@ async def main():
         for i,u in enumerate(users[:3]):
             c=socketio.AsyncClient(reconnection=False)
             c.on('game:action',lambda d,i=i: events[i].append(d))
-            await c.connect(BASE,auth={'token':create_access_token({'sub':u})},transports=['websocket'],socketio_path='/socket.io')
+            await c.connect(BASE,auth={'token':create_access_token({'sub':u,'phone':'00000000'})},transports=['websocket'],socketio_path='/socket.io')
             clients.append(c)
             ack=await c.call('game:join',{'room_id':room},timeout=15)
             assert ack.get('success'), ack
@@ -55,7 +55,7 @@ async def main():
         ack=await clients[0].call('game:set_state',{'room_id':room,'state':state,'sequence':seq},timeout=15)
         assert ack.get('success'),ack
         await clients[2].disconnect()
-        await clients[2].connect(BASE,auth={'token':create_access_token({'sub':users[2]})},transports=['websocket'],socketio_path='/socket.io')
+        await clients[2].connect(BASE,auth={'token':create_access_token({'sub':users[2],'phone':'00000000'})},transports=['websocket'],socketio_path='/socket.io')
         ack=await clients[2].call('game:join',{'room_id':room},timeout=15)
         assert ack.get('game_state')==state,ack
         print('PASS: production group invite source, scoped roster, 3 connected + 1 absent candidate, authorization denials, 3-player vote relay and reconnect checkpoint.')

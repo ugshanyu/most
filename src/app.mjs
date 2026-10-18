@@ -1,7 +1,7 @@
 import {questions,colors} from './questions.mjs';
 import {blank,complete,reduce,winners} from './model.mjs';
 const root=document.querySelector('main');
-const strings={en:{invite:'Play with friends',ready:'Ready',unready:'Not ready',start:'Let’s go',next:'Next question',replay:'Play again',waiting:'Waiting for friends…',hostWait:'Waiting for the host…',votes:'voted',skip:'Continue without absent players',offline:'Reconnecting…',error:'Couldn’t connect. Tap Retry.',retry:'Retry',you:'You',stamp:'MY PICK',finish:'The group has spoken 👀',local:'Open Most in Usions to invite friends.',chat:'Chat',send:'Send',phrases:['Really? 👀','Definitely you 😂','Explain yourself','I knew it','No way','That’s fair 🤝'],absent:'Away',late:'You can vote on the next question',empty:'No votes'},mn:{invite:'Найзуудтайгаа тоглох',ready:'Бэлэн',unready:'Бэлэн биш',start:'Эхэлцгээе',next:'Дараагийн асуулт',replay:'Дахин тоглох',waiting:'Найзуудаа хүлээж байна…',hostWait:'Эхлүүлэхийг хүлээж байна…',votes:'санал өгсөн',skip:'Байхгүй тоглогчгүйгээр үргэлжлүүлэх',offline:'Дахин холбогдож байна…',error:'Холбогдож чадсангүй. Дахин оролдоорой.',retry:'Дахин оролдох',you:'Чи',stamp:'МИНИЙ СОНГОЛТ',finish:'Найзууд ингэж бодож байна 👀',local:'Найзуудаа урихын тулд Usions-д нээгээрэй.',chat:'Чат',send:'Илгээх',phrases:['Нээрээ юу? 👀','Яг чи 😂','Тайлбарлаарай','Мэдэж байсан','Үгүй байлгүй','Зөв өө 🤝'],absent:'Түр гарсан',late:'Дараагийн асуултаас санал өгнө',empty:'Санал алга'}};
+const strings={en:{invite:'Play with friends',ready:'Ready',unready:'Not ready',start:'Let’s go',next:'Next question',replay:'Play again',waiting:'Waiting for friends…',hostWait:'Waiting for the host…',votes:'voted',skip:'Continue without absent players',offline:'Reconnecting…',error:'Couldn’t connect. Tap Retry.',retry:'Retry',you:'You',stamp:'MY PICK',finish:'The group has spoken 👀',large:'This group is too large. Invite a smaller group to play.',local:'Open Most in Usions to invite friends.',chat:'Chat',send:'Send',phrases:['Really? 👀','Definitely you 😂','Explain yourself','I knew it','No way','That’s fair 🤝'],absent:'Away',late:'You can vote on the next question',empty:'No votes'},mn:{invite:'Найзуудтайгаа тоглох',ready:'Бэлэн',unready:'Бэлэн биш',start:'Эхэлцгээе',next:'Дараагийн асуулт',replay:'Дахин тоглох',waiting:'Найзуудаа хүлээж байна…',hostWait:'Эхлүүлэхийг хүлээж байна…',votes:'санал өгсөн',skip:'Байхгүй тоглогчгүйгээр үргэлжлүүлэх',offline:'Дахин холбогдож байна…',error:'Холбогдож чадсангүй. Дахин оролдоорой.',retry:'Дахин оролдох',you:'Чи',stamp:'МИНИЙ СОНГОЛТ',finish:'Найзууд ингэж бодож байна 👀',large:'Бүлэг хэт том байна. Цөөн хүнтэй бүлгээр тоглоорой.',local:'Найзуудаа урихын тулд Usions-д нээгээрэй.',chat:'Чат',send:'Илгээх',phrases:['Нээрээ юу? 👀','Яг чи 😂','Тайлбарлаарай','Мэдэж байсан','Үгүй байлгүй','Зөв өө 🤝'],absent:'Түр гарсан',late:'Дараагийн асуултаас санал өгнө',empty:'Санал алга'}};
 let sdk,me='',lang='en',room='',shared,people=[],roomHost='',online=true,busy=false,error='',chatOpen=false,loading=false,lastRefresh=0;
 const away=new Map(),chatTimes=new Map();let lastChat=0;
 const t=k=>strings[lang][k],state=()=>shared?.get()||blank();
@@ -31,7 +31,7 @@ function render(){
 function canSkip(){return state().voters.filter(id=>!Object.hasOwn(state().votes,id)&&!state().skipped.includes(id)&&away.has(id)&&Date.now()-away.get(id)>=20000);}
 async function refresh(){
  if(!room||loading)return;loading=true;
- try{const d=await sdk.game.getParticipants();if(d.roomId!==room)return;people=d.participants;roomHost=d.hostId;lastRefresh=Date.now();for(const p of people){if(p.connected)away.delete(p.id);else if(!away.has(p.id))away.set(p.id,Date.now());}error='';
+ try{const d=await sdk.game.getParticipants();if(d.roomId!==room)return;people=d.participants;roomHost=d.hostId;lastRefresh=Date.now();for(const pid of new Set([...people.map(p=>p.id),...state().voters])){if(active().includes(pid))away.delete(pid);else if(!away.has(pid))away.set(pid,Date.now());}error='';
  // A disconnected host gets a grace period; remaining players elect the first
  // active seat in the stable directory. The action is sequenced like votes.
  const s=state(),previous=s.host||d.hostId;if(active().includes(previous)){roomHost=previous;}else{if(!away.has(previous))away.set(previous,Date.now());if(Date.now()-away.get(previous)>=20000){roomHost=active()[0]||previous;if(s.host&&s.host!==roomHost&&roomHost===me)await commit('host',{previousHost:s.host});}}
@@ -62,14 +62,14 @@ root.addEventListener('click',async e=>{
   if(b.dataset.choice)await commit('vote',{candidate:b.dataset.choice});
   else if(a==='invite'){if(!sdk)error=t('local');else{const r=await sdk.game.invite({maxPlayers:16});if(r.success)await enter(r.roomId);}}
   else if(a==='ready')await commit('ready',{ready:!state().ready[me]});
-  else if(a==='start'){await refresh();if(active().length<2)return;await shared.commit('start',{session:crypto.randomUUID(),candidates:people,voters:active()},{queueOffline:false});}
+  else if(a==='start'){await refresh();if(active().length<2)return;if(new TextEncoder().encode(JSON.stringify(people)).length>35000)throw Error('GROUP_TOO_LARGE');await shared.commit('start',{session:crypto.randomUUID(),candidates:people,voters:active()},{queueOffline:false});}
   else if(a==='next'){await refresh();await commit('next',{voters:active().length>=2?active():state().voters});}
   else if(a==='skip')await commit('skip',{players:canSkip()});
   else if(a==='replay')await commit('restart');
   else if(a==='retry'){await enter(room);sdk.game.requestSync(shared?.getSequence()||0);}
   else if(a==='chat')chatOpen=!chatOpen;
   else if(a?.startsWith('phrase-'))sendChat(t('phrases')[Number(a.slice(7))]);
- }catch{error=t('error');}finally{busy=false;render();}
+ }catch(e){error=t(e.message==='GROUP_TOO_LARGE'?'large':'error');}finally{busy=false;render();}
 });
 let pulse=Date.now();setInterval(()=>{if(room){if(Date.now()-pulse>15000)sdk.game.requestSync(shared?.getSequence()||0);if(Date.now()-lastRefresh>5000)void refresh();else render();}pulse=Date.now();},5000);
 function boot(c){me=String(c.userId||'');lang=String(sdk?.getLanguage()||navigator.language).startsWith('mn')?'mn':'en';if(sdk){wire();if(sdk.getLaunchParams().mode==='multiplayer')void enter(c.roomId).catch(()=>{error=t('error');render();});}render();}
