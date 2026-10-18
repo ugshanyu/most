@@ -7,14 +7,14 @@ export function winners(votes){const counts={};for(const id of Object.values(vot
 // playerId, never a user ID supplied inside the action payload.
 export function reduce(s,{playerId:id,type,data:d={}},roomHost){
  if(type==='ready'&&s.phase==='lobby'&&typeof d.ready==='boolean')return {...s,ready:{...s.ready,[id]:d.ready}};
- if(type==='start'&&s.phase==='lobby'&&id===roomHost&&ids(d.voters)&&d.voters.includes(id)&&d.voters.every(p=>s.ready[p])&&typeof d.session==='string'&&d.session&&Array.isArray(d.candidates)&&d.candidates.length>=2&&d.candidates.length<=500){
+ if(type==='start'&&s.phase==='lobby'&&id===(s.host||roomHost)&&ids(d.voters)&&d.voters.includes(id)&&d.voters.every(p=>s.ready[p])&&typeof d.session==='string'&&d.session&&Array.isArray(d.candidates)&&d.candidates.length>=2&&d.candidates.length<=500){
   const candidates=d.candidates.filter(p=>p&&typeof p.id==='string'&&typeof p.name==='string').map(p=>({id:p.id,name:p.name.slice(0,60),avatar:typeof p.avatar==='string'?p.avatar:null}));
   if(candidates.length!==d.candidates.length||new Set(candidates.map(p=>p.id)).size!==candidates.length)return s;
   return {...blank(),phase:'question',session:d.session,host:id,candidates,voters:d.voters};
  }
  if(d.session!==s.session)return s;
- if(type==='host'&&s.phase!=='lobby'&&id===roomHost)return {...s,host:id};
- if(type==='restart'&&s.phase==='done'&&id===s.host)return blank();
+ if(type==='host'&&s.host&&d.previousHost===s.host&&id!==s.host&&s.voters.includes(id))return {...s,host:id};
+ if(type==='restart'&&s.phase==='done'&&id===s.host)return {...blank(),host:s.host};
  if(s.phase!=='question'||d.round!==s.round)return s;
  if(type==='vote'&&s.voters.includes(id)&&!s.skipped.includes(id)&&!Object.hasOwn(s.votes,id)&&s.candidates.some(p=>p.id===d.candidate))return {...s,votes:{...s.votes,[id]:d.candidate}};
  if(type==='skip'&&id===s.host&&Array.isArray(d.players))return {...s,skipped:[...new Set([...s.skipped,...d.players.filter(p=>s.voters.includes(p)&&!Object.hasOwn(s.votes,p))])]};

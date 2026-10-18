@@ -18,3 +18,6 @@ The Usions service registration is separate from Vercel hosting. Its iframe URL
 must point to production, `max_players` must be 16, leaderboard disabled, and
 SDK version must include getParticipants. Icon changes need a new versioned URL
 and a registry image update verified against public bytes.
+
+The Most-only Vercel token created October 19, 2026 expires in October 2027.
+Rotate VERCEL_TOKEN before then; it grants access only to the usion-most project.

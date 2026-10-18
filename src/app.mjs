@@ -34,7 +34,7 @@ async function refresh(){
  try{const d=await sdk.game.getParticipants();if(d.roomId!==room)return;people=d.participants;roomHost=d.hostId;lastRefresh=Date.now();for(const p of people){if(p.connected)away.delete(p.id);else if(!away.has(p.id))away.set(p.id,Date.now());}error='';
  // A disconnected host gets a grace period; remaining players elect the first
  // active seat in the stable directory. The action is sequenced like votes.
- const s=state(),previous=s.host||d.hostId;if(active().includes(previous)){roomHost=previous;}else{if(!away.has(previous))away.set(previous,Date.now());if(Date.now()-away.get(previous)>=20000){roomHost=active()[0]||previous;if(s.host&&s.host!==roomHost&&roomHost===me)await commit('host');}}
+ const s=state(),previous=s.host||d.hostId;if(active().includes(previous)){roomHost=previous;}else{if(!away.has(previous))away.set(previous,Date.now());if(Date.now()-away.get(previous)>=20000){roomHost=active()[0]||previous;if(s.host&&s.host!==roomHost&&roomHost===me)await commit('host',{previousHost:s.host});}}
  }catch{error=t('error');}finally{loading=false;render();}
 }
 function setup(){if(shared)return;shared=sdk.game.syncedState(blank(),{reduce:(s,a)=>reduce(s,a,roomHost),checkpointEvery:1,authority:'all'});shared.onChange(()=>{error='';render();});}
@@ -42,7 +42,7 @@ async function commit(type,data={}){const s=state();const r=await shared.commit(
 async function enter(id){if(room!==id){shared?.destroy();shared=null;people=[];room=id;setup();}await sdk.game.connect();await sdk.game.join(room);await refresh();}
 function wire(){
  sdk.game.onRoomAssigned(d=>{if(room!==d.roomId){shared?.destroy();shared=null;people=[];room=d.roomId;setup();}render();});
- sdk.game.onJoined(()=>{online=true;void refresh();});
+ sdk.game.onJoined(d=>{roomHost=d.host_id||d.player_ids?.[0]||roomHost;online=true;void refresh();});
  sdk.game.onPlayerJoined(()=>void refresh());
  sdk.game.onPlayerLeft(d=>{if(!away.has(d.player_id))away.set(d.player_id,Date.now());people=people.map(p=>p.id===d.player_id?{...p,connected:false}:p);render();void refresh();});
  sdk.game.onPlayerConnection(d=>{if(d.state==='connected')away.delete(d.player_id);else if(!away.has(d.player_id))away.set(d.player_id,Date.now());void refresh();});
