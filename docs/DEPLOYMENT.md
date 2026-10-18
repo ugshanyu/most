@@ -21,3 +21,7 @@ and a registry image update verified against public bytes.
 
 The Most-only Vercel token created October 19, 2026 expires in October 2027.
 Rotate VERCEL_TOKEN before then; it grants access only to the usion-most project.
+
+Owner registration: from a configured Usions backend directory, run
+`python /path/to/most/scripts/register.py --backend-root /path/to/backend`.
+This checks the exact public bundle/icon bytes before changing only Most.

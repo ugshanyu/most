@@ -23,7 +23,7 @@ await context.exposeBinding('relay',async({page},kind,id,data)=>{
  if(kind==='realtime'){await dispatch('realtime',{player_id:id,action_type:data.type,action_data:data.data});return {success:true};}
 });
 try{
- for(const id of ['a','b','c']){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(`http://127.0.0.1:${server.address().port}/?player=${id}`);}
+ for(const id of ['a','b','c']){const p=await context.newPage();await p.clock.install();p.on('pageerror',e=>errors.push(e.message));await p.goto(`http://127.0.0.1:${server.address().port}/?player=${id}`);}
  await dispatch('playerJoined',{player_id:'c'});
  const [a,b,c]=['a','b','c'].map(id=>pages.get(id));
  for(const p of [a,b,c])await p.getByRole('button',{name:'Ready',exact:true}).click();
@@ -44,5 +44,18 @@ try{
  await a.screenshot({path:new URL('../artifacts/most-results.png',import.meta.url).pathname});
  await a.getByRole('button',{name:'Play again',exact:true}).click();
  for(const p of [a,b,c])await p.getByRole('button',{name:'Ready',exact:true}).waitFor();
- assert.deepEqual(errors,[]);console.log('PASS: 3 clients, immediate reveal, one stamp, fixed card size, reload recovery, 15 rounds, results and replay.');
+ for(const p of [a,b,c])await p.getByRole('button',{name:'Ready',exact:true}).click();
+ await a.getByRole('button',{name:'Let’s go',exact:true}).click();
+ const d=await context.newPage();await d.goto(`http://127.0.0.1:${server.address().port}/?player=d`);
+ await d.getByText('You can vote on the next question').waitFor();
+ await dispatch('playerJoined',{player_id:'d'});
+ await b.locator('[data-choice="d"]').click();await c.locator('[data-choice="c"]').click();
+ connected.delete('a');await dispatch('playerLeft',{player_id:'a'});
+ await Promise.all([b,c].map(p=>p.clock.fastForward(25000)));
+ await b.getByRole('button',{name:'Continue without absent players',exact:true}).click();
+ await b.getByRole('button',{name:'Next question',exact:true}).click();
+ await d.locator('[data-choice="a"]:not([disabled])').waitFor();
+ assert.equal(checkpoint.state.host,'b');assert.equal(checkpoint.state.history[0].votes.a,undefined);
+ assert.deepEqual(checkpoint.state.history[0].skipped,['a']);
+ assert.deepEqual(errors,[]);console.log('PASS: 3 clients, immediate reveal, one stamp, fixed card size, reload recovery, 15 rounds, results, replay, late join, host transfer and absence grace.');
 }finally{await browser.close();server.close();}
