@@ -27,7 +27,14 @@ try{
  await a.locator('.results').waitFor();assert.equal(rows.length,14);
  await a.reload();await a.locator('[data-pack="friends-v1"] .avatar').first().waitFor();await a.locator('[data-pack="friends-v1"]').click();await a.locator('.results').waitFor();
  const b=await open('b');await b.locator('[data-pack="friends-v1"]').click();
- await b.locator('[data-choice="a"]').click();await b.getByRole('button',{name:'Next question',exact:true}).click();
+ await b.locator('[data-choice="a"]').click();const next=b.getByRole('button',{name:'Next question',exact:true});
+ const nextNode=await next.elementHandle(),box=await next.boundingBox();
+ await b.mouse.move(box.x+box.width/2,box.y+box.height/2);await b.mouse.down();
+ rows.push({pack_id:'friends-v1',question:questions[0].id,voter:'c',candidate:'a'});
+ await b.waitForTimeout(2300); // A live-vote poll must not replace a button during a tap.
+ assert.equal(await nextNode.evaluate(node=>node.isConnected),true);
+ await b.mouse.up();await b.getByText('2 / 14',{exact:true}).waitFor();
+ rows.splice(rows.findIndex(v=>v.voter==='c'),1);
  await b.reload();await b.locator('[data-pack="friends-v1"]').click();await b.getByText('2 / 14',{exact:true}).waitFor();
  await a.waitForTimeout(2500);assert.deepEqual(await a.locator('article').first().locator('[role="meter"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-valuenow'))),['50','50']);
  const home=await open('a','single');await home.locator('[data-pack="friends-v1"] .avatar').first().waitFor();assert.equal(await home.locator('[data-pack="friends-v1"] .avatar').count(),2);

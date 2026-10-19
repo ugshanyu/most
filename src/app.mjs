@@ -21,7 +21,19 @@ function resultRows(votes){
   return `<div class="vote-result">${avatar(p)}<div class="vote-content"><div class="vote-heading"><strong title="${esc(p.name)}">${esc(p.name)}</strong><span>${percent}%</span></div><div class="vote-line"><div class="vote-track" role="meter" aria-label="${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${count/total*100}%"></span></div><div class="voters" aria-label="${t('votes')}">${voteAvatars(votes,id)}</div></div></div></div>`;
  }).join('');
 }
+let lastRendered='',renderPending=false;
+const pressedPointers=new Set();
+root.addEventListener('pointerdown',e=>pressedPointers.add(e.pointerId));
+function releasePointer(e){
+ pressedPointers.delete(e.pointerId);
+ // Let the browser dispatch click before applying a queued live update.
+ setTimeout(()=>{if(!pressedPointers.size&&renderPending)render();},0);
+}
+window.addEventListener('pointerup',releasePointer);
+window.addEventListener('pointercancel',releasePointer);
+window.addEventListener('blur',()=>{pressedPointers.clear();if(renderPending)render();});
 function render(){
+ if(pressedPointers.size){renderPending=true;return;}renderPending=false;
  const s=state(),locked=Object.hasOwn(s.votes,me);
  document.documentElement.lang=lang;document.body.style.setProperty('--bg',colors[s.round%colors.length]);root.className=['records','packs','create'].includes(view)?'records-page':!room?'entry':'';
  let html='';
@@ -45,7 +57,7 @@ function render(){
  }
  html+=`<p class="status" role="status">${esc(!online?t('offline'):error)}</p>${error?button(t('retry'),'retry',busy,'secondary'):''}`;
  if(room&&view==='play'&&!review)html+=`<button class="chat-toggle" data-action="chat" aria-label="${t('chat')}">💬</button>${chatOpen?`<div class="chat-panel"><div class="phrases">${t('phrases').map((v,i)=>button(v,'phrase-'+i,false,'secondary')).join('')}</div><form><input maxlength="80" aria-label="${t('chat')}"><button class="secondary">${t('send')}</button></form></div>`:''}`;
- root.innerHTML=html;
+ if(html!==lastRendered){root.innerHTML=html;lastRendered=html;}
 }
 async function api(path='',body,global=false){
  const target=room,targetPack=activePack.id;
