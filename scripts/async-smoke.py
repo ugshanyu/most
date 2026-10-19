@@ -35,7 +35,7 @@ async def main():
             await request(users[1],'/join',{})
             assert [r['id'] for r in await records(users[1])]==[room]
             await request(users[1],'/most/vote',{'question':'president','candidate':users[0]})
-            await request(users[1],'/most/vote',{'question':'president','candidate':users[1]})
+            await request(users[1],'/most/vote',{'question':'president','candidate':users[1]},expected=422)
             data=await request(users[1],'/most');assert len(data['votes'])==16
             assert next(v for v in data['votes'] if v['voter']==users[1])['candidate']==users[0]
             assert len((await request(users[0],'/most'))['votes'])==16
@@ -56,8 +56,11 @@ async def main():
             await request(users[1],'/most?pack_id='+custom['id'],expected=403)
             await request(users[0],'/most/pack',{'pack_id':custom['id']})
             assert custom['id'] in [p['id'] for p in (await global_request(users[1],'/packs?room_id='+room))['packs']]
+            for pack_id, question in [(custom['id'], 'q1'), ('friends-v1', 'funny')]:
+                await request(users[0],'/most/vote',{'pack_id':pack_id,'question':question,'candidate':users[0]},expected=422)
+                assert not (await request(users[0],'/most?pack_id='+pack_id))['votes']
             for u in users:
-                await request(u,'/most/vote',{'pack_id':custom['id'],'question':'q1','candidate':users[0]})
+                await request(u,'/most/vote',{'pack_id':custom['id'],'question':'q1','candidate':users[1] if u==users[0] else users[0]})
             assert len((await request(users[1],'/most?pack_id='+custom['id']))['votes'])==2
             catalog=await global_request(users[1],'/packs?room_id='+room)
             card=next(p for p in catalog['packs'] if p['id']==custom['id'])

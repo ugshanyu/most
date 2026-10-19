@@ -21,6 +21,7 @@ const open=async(id,mode='multiplayer')=>{const page=await context.newPage();pag
 try{
  await mkdir(new URL('../artifacts',import.meta.url),{recursive:true});
  const a=await open('a');await a.locator('[data-pack="friends-v1"]').click();
+ assert.equal(await a.locator('[data-choice="a"]').isDisabled(),true);
  const before=await a.locator('[data-choice="b"]').boundingBox();
  for(let i=0;i<14;i++){await a.locator('[data-choice="b"]').click();await a.locator('.stamp').waitFor();assert.equal(await a.locator('.stamp').count(),1);if(i===0){const after=await a.locator('[data-choice="b"]').boundingBox();assert.equal(before.height,after.height);}await a.getByRole('button',{name:'Next question',exact:true}).click();}
  await a.locator('.results').waitFor();assert.equal(rows.length,14);
