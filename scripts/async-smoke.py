@@ -1,0 +1,40 @@
+"""Verify asynchronous production voting with disposable identities only."""
+import argparse, asyncio, sys, uuid
+from datetime import datetime, timedelta
+p=argparse.ArgumentParser();p.add_argument('--backend-root',required=True);args=p.parse_args();sys.path.insert(0,args.backend_root)
+import httpx
+from motor.motor_asyncio import AsyncIOMotorClient
+from core.config import settings
+from core.security import create_access_token
+BASE='https://mobile.mongolai.mn'
+async def main():
+    prefix='test-most-'+uuid.uuid4().hex[:12]; room=prefix+'-room'; users=[prefix+'-'+c for c in 'ab']
+    client=AsyncIOMotorClient(settings.DATABASE_URL);db=client[settings.DATABASE_NAME]
+    try:
+        await db.users.insert_many([{'id':u,'name':'Async smoke','is_active':True} for u in users])
+        await db.game_rooms.insert_one({'id':room,'service_id':'most','game_id':'most','host_id':users[0],'player_ids':[users[0]],'max_players':16,'min_players':2,'status':'waiting','created_at':datetime.utcnow()-timedelta(days=365),'most_invitee_ids':[users[1]]})
+        async with httpx.AsyncClient(timeout=25) as http:
+            async def request(user,path='',body=None):
+                token=create_access_token({'sub':user,'purpose':'iframe','service_id':'most'})
+                r=await http.request('POST' if body is not None else 'GET',BASE+'/games/rooms/'+room+path,headers={'Authorization':'Bearer '+token},**({'json':body} if body is not None else {}))
+                assert r.status_code==200,(r.status_code,r.text);return r.json()
+            questions='president tipsy funny influencer millionaire flirt married ex secret drama late karaoke abroad salary help'.split()
+            for q in questions: await request(users[0],'/most/vote',{'question':q,'candidate':users[1]})
+            # Old room stays live even with nobody connected and after cleanup.
+            from services.game_cleanup_service import _archive_and_delete
+            assert await _archive_and_delete(db,{'id':room})==0
+            assert len((await request(users[0],'/most'))['votes'])==15
+            await request(users[1],'/join',{})
+            await request(users[1],'/most/vote',{'question':'president','candidate':users[0]})
+            await request(users[1],'/most/vote',{'question':'president','candidate':users[1]})
+            data=await request(users[1],'/most');assert len(data['votes'])==16
+            assert next(v for v in data['votes'] if v['voter']==users[1])['candidate']==users[0]
+            assert len((await request(users[0],'/most'))['votes'])==16
+        print('PASS: year-old invite, no connected players, 15 solo ballots, late join, immutable vote retry, durable result read, cleanup exclusion.')
+    finally:
+        await db.most_votes.delete_many({'room_id':room});await db.game_rooms.delete_one({'id':room});await db.users.delete_many({'id':{'$in':users}})
+        from services.redis.connection import get_redis
+        redis=await get_redis();keys=[k async for k in redis.scan_iter(match='*'+prefix+'*')]
+        if keys: await redis.delete(*keys)
+        client.close();print('Disposable fixtures removed.')
+asyncio.run(main())
