@@ -17,7 +17,7 @@ function resultRows(votes){
  const counts={};for(const id of Object.values(votes))counts[id]=(counts[id]||0)+1;
  return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([id,count])=>{
   const percent=Math.round(count/total*100),p=person(id);
-  return `<div class="vote-result"><div class="vote-heading">${avatar(p,true)}<strong>${esc(p.name)}</strong><span>${percent}%</span></div><div class="vote-track" role="meter" aria-label="${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${count/total*100}%"></span></div><div class="voters" aria-label="${t('votes')}">${voteAvatars(votes,id)}</div></div>`;
+  return `<div class="vote-result"><div class="vote-heading">${avatar(p,true)}<strong>${esc(p.name)}</strong><span>${percent}%</span></div><div class="vote-line"><div class="vote-track" role="meter" aria-label="${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${count/total*100}%"></span></div><div class="voters" aria-label="${t('votes')}">${voteAvatars(votes,id)}</div></div></div>`;
  }).join('');
 }
 function render(){
