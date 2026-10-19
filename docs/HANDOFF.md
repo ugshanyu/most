@@ -2,7 +2,7 @@
 
 Most is asynchronous and pack-based. Choose a pack, invite friends, answer at
 any pace, and reopen the same invite later. Each pack keeps its own votes and
-progress. The built-in “The friend test 👀” contains the user's 14 revised
+progress. The built-in “Who is” contains the user's 14 revised
 questions in English and Mongolian. Original questions are retained only for
 historical records; old ballots are never relabeled as new answers.
 
@@ -31,7 +31,7 @@ chat. The pending selected pack is held in sessionStorage across the host's
 invite remount. Ordinary reloads reopen the pack catalog with saved progress.
 Pack questions and IDs are immutable once created; the server validates all votes.
 
-Voting screens show only your own selection stamp; other picks and voter icons
+Voting choices exclude the current user. Voting screens show only your own selection stamp; other picks and voter icons
 are revealed in end results and records, with no in-round records shortcut.
 Keep real voter icons in results, vote percentages/bars, one selection stamp, stable card
 sizes, equal action buttons and EN/MN. No leaderboard or automatic profile posts.

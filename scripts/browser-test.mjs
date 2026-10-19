@@ -20,8 +20,8 @@ await context.route('https://test.invalid/**',async route=>{
 const open=async(id,mode='multiplayer')=>{const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}/?player=${id}&mode=${mode}`);return page;};
 try{
  await mkdir(new URL('../artifacts',import.meta.url),{recursive:true});
- const a=await open('a');await a.locator('[data-pack="friends-v1"]').click();
- assert.equal(await a.locator('[data-choice="a"]').isDisabled(),true);
+ const a=await open('a');await a.getByRole('button',{name:/Who is/}).waitFor();assert.equal(await a.getByRole('button',{name:'Home',exact:true}).count(),0);await a.locator('[data-pack="friends-v1"]').click();
+ assert.equal(await a.locator('[data-choice="a"]').count(),0);
  const before=await a.locator('[data-choice="b"]').boundingBox();
  for(let i=0;i<14;i++){await a.locator('[data-choice="b"]').click();await a.locator('.stamp').waitFor();assert.equal(await a.locator('.stamp').count(),1);if(i===0){const after=await a.locator('[data-choice="b"]').boundingBox();assert.equal(before.height,after.height);}await a.getByRole('button',{name:'Next question',exact:true}).click();}
  await a.locator('.results').waitFor();assert.equal(rows.length,14);
