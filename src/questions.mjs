@@ -32,7 +32,7 @@ export const questions = [
   "id": "exes",
   "emoji": "💔",
   "en": "Who do you think has the most exes?",
-  "mn": "Хэн хамгийн олон хуучин хайртай гэж бодож байна?"
+  "mn": "Хэн хамгийн олон экстэй вэ?"
  },
  {
   "id": "scent",
