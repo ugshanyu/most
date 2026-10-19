@@ -2,7 +2,8 @@
 
 [Play in Usions](https://usions.com/chat/iframe/most?mode=single) · [Production](https://usion-most.vercel.app)
 
-A Usions group game: 15 questions, tap a friend's avatar, see every vote immediately.
+A Usions group game: choose a question pack, tap a friend's avatar, see every vote.
+Includes a 14-question friend pack and private custom packs.
 Friends can answer whenever they want; invitations do not expire. Up to sixteen
 people can vote independently. Group members can be candidates without joining.
 No scores, leaderboard, or automatic profile posts.
