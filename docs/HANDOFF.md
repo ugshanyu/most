@@ -27,3 +27,11 @@ reload recovery and live result updates using a test-only API adapter.
 Production smoke uses disposable identities; never send invitations to real
 contacts just to test. Native visual validation must not take over the user's
 active encrypted chat session or replace their working glass-menu binary.
+
+## Records
+
+The home Records button lists joined rooms via GET /games/most/records, with
+20-room pages and member-only authorization. Opening a record reads the existing
+room without casting a vote or requiring everyone to finish. The book icon in
+play opens current answers; Continue playing resumes the next unanswered item.
+Every voter → candidate row is visible by default, including non-winning picks.

@@ -18,6 +18,14 @@ async def main():
                 token=create_access_token({'sub':user,'purpose':'iframe','service_id':'most'})
                 r=await http.request('POST' if body is not None else 'GET',BASE+'/games/rooms/'+room+path,headers={'Authorization':'Bearer '+token},**({'json':body} if body is not None else {}))
                 assert r.status_code==200,(r.status_code,r.text);return r.json()
+            async def records(user):
+                token=create_access_token({'sub':user,'purpose':'iframe','service_id':'most'})
+                response=await http.get(BASE+'/games/most/records',headers={'Authorization':'Bearer '+token})
+                assert response.status_code==200,response.text
+                assert response.headers.get('cache-control')=='private, no-store'
+                return response.json()['records']
+            assert [r['id'] for r in await records(users[0])]==[room]
+            assert await records(users[1])==[]
             questions='president tipsy funny influencer millionaire flirt married ex secret drama late karaoke abroad salary help'.split()
             for q in questions: await request(users[0],'/most/vote',{'question':q,'candidate':users[1]})
             # Old room stays live even with nobody connected and after cleanup.
@@ -25,6 +33,7 @@ async def main():
             assert await _archive_and_delete(db,{'id':room})==0
             assert len((await request(users[0],'/most'))['votes'])==15
             await request(users[1],'/join',{})
+            assert [r['id'] for r in await records(users[1])]==[room]
             await request(users[1],'/most/vote',{'question':'president','candidate':users[0]})
             await request(users[1],'/most/vote',{'question':'president','candidate':users[1]})
             data=await request(users[1],'/most');assert len(data['votes'])==16
