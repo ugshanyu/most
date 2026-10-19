@@ -10,8 +10,8 @@ await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascri
 await context.route('https://test.invalid/**',async route=>{
  const req=route.request(),url=new URL(req.url()),d=req.method()==='POST'?req.postDataJSON():null,voter=req.headers().authorization.split(' ')[1];let json;
  if(url.pathname==='/games/most/packs'){
-  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
-  else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||shared.has(p.id)).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
+  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,visibility:d.visibility||'private',questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
+  else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||p.visibility==='public'||(shared.has(p.id)&&people.some(person=>person.id===voter))).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
  }else if(url.pathname.endsWith('/records'))json={records:[{id:'r',createdAt:'2026-10-19T00:00:00Z',participants:people}],nextOffset:null};
  else if(url.pathname.endsWith('/vote')){if(!rows.some(v=>v.voter===voter&&v.question===d.question&&v.pack_id===d.pack_id))rows.push({...d,voter});json={success:true};}
  else if(d){if(url.pathname.endsWith('/pack'))shared.add(d.pack_id);json={success:true};}
@@ -60,6 +60,21 @@ try{
  await home.getByRole('button',{name:'Question packs',exact:true}).click();assert.equal(await home.getByRole('button',{name:/Weekend crew/}).locator('.avatar').count(),1);
  await home.getByText('Loading…',{exact:true}).waitFor({state:'hidden'});
  await home.screenshot({path:new URL('../artifacts/most-packs.png',import.meta.url).pathname});
+ const outsider=await open('outsider','single');await outsider.getByRole('button',{name:/Who is/}).waitFor();
+ assert.equal(await outsider.getByRole('button',{name:/Weekend crew/}).count(),0);
+ await home.getByRole('button',{name:'＋ Create a pack',exact:true}).click();
+ assert.equal(await home.locator('[name="visibility"][value="private"]').isChecked(),true);
+ await home.locator('[name="visibility"][value="public"]').check();
+ await home.locator('[name="title"]').fill('Everyone can play');
+ await home.locator('[name="q0"]').fill('Who would bake the best cake?');
+ await home.getByRole('button',{name:'＋ Add question',exact:true}).click();
+ assert.equal(await home.locator('[name="visibility"][value="public"]').isChecked(),true);
+ await home.locator('[name="q1"]').fill('Who would win a dance contest?');
+ await home.screenshot({path:new URL('../artifacts/most-public-pack-create.png',import.meta.url).pathname});
+ await home.getByRole('button',{name:'Save pack',exact:true}).click();
+ await outsider.getByRole('button',{name:/Everyone can play/}).waitFor();
+ assert.equal(packs.find(p=>p.title==='Everyone can play').visibility,'public');
+ assert.equal(await outsider.getByRole('button',{name:/Weekend crew/}).count(),0);
  assert.equal(rows.filter(v=>v.pack_id==='friends-v1').length,15);assert.deepEqual(errors,[]);
  console.log('PASS: 14-question pack, independent progress, percentage results, private records, answerer icons, custom creation, invite and reload, isolated votes.');
 }finally{await browser.close();server.close();}

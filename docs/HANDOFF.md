@@ -10,7 +10,10 @@ Pack cards show real answerer icons (at least one submitted vote). On the home
 screen these come only from the viewer's joined games; inside a game they come
 only from that room. No global disclosure of private answers or friend activity.
 
-Users can create immutable packs with a name and 1–30 unique questions. Custom
+Users can create immutable packs with a name, 1–30 unique questions, and a
+Private/Public choice (default Private). Public question packs are visible to all
+Most users; votes and answerer icons remain scoped to joined games. Existing packs
+without visibility remain private. Custom
 packs created inside a game are shared with that game on Save. Packs created
 without a game stay private until shared into a joined game. Pack lists refresh
 automatically so friends see newly shared packs without reopening. Members of
