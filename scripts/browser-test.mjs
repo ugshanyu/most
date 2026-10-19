@@ -27,7 +27,11 @@ try{
  await a.locator('.results').waitFor();assert.equal(rows.length,14);
  await a.reload();await a.locator('[data-pack="friends-v1"] .avatar').first().waitFor();await a.locator('[data-pack="friends-v1"]').click();await a.locator('.results').waitFor();
  const b=await open('b');await b.locator('[data-pack="friends-v1"]').click();
- await b.locator('[data-choice="a"]').click();const next=b.getByRole('button',{name:'Next question',exact:true});
+ assert.equal(await b.locator('.grid .voters .avatar').count(),0);
+ assert.equal(await b.locator('[data-action="review"]').count(),0);
+ await b.locator('[data-choice="a"]').click();
+ assert.equal(await b.locator('.grid .voters .avatar').count(),0);
+ const next=b.getByRole('button',{name:'Next question',exact:true});
  const nextNode=await next.elementHandle(),box=await next.boundingBox();
  await b.mouse.move(box.x+box.width/2,box.y+box.height/2);await b.mouse.down();
  rows.push({pack_id:'friends-v1',question:questions[0].id,voter:'c',candidate:'a'});

@@ -31,7 +31,9 @@ chat. The pending selected pack is held in sessionStorage across the host's
 invite remount. Ordinary reloads reopen the pack catalog with saved progress.
 Pack questions and IDs are immutable once created; the server validates all votes.
 
-Keep real voter icons, vote percentages/bars, one selection stamp, stable card
+Voting screens show only your own selection stamp; other picks and voter icons
+are revealed in end results and records, with no in-round records shortcut.
+Keep real voter icons in results, vote percentages/bars, one selection stamp, stable card
 sizes, equal action buttons and EN/MN. No leaderboard or automatic profile posts.
 Most invites never expire. Old mobile host binaries need the 1.6.37 host update
 for their cards to stop applying the old 15-minute expiry.
