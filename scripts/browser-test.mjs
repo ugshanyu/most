@@ -4,16 +4,17 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const html=await readFile(new URL('../public/index.html',import.meta.url));
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(html)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844}});const errors=[],rows=[],people=['a','b','c'].map(id=>({id,name:id}));
+const shared=new Set();
 const packs=[{id:'friends-v1',title:'The friend test 👀',questions}];
 await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascript',body:`window.Usion={config:{apiUrl:'https://test.invalid'},user:{getToken:()=>new URLSearchParams(location.search).get('player')},getLanguage:()=> 'en',getLaunchParams:()=>({mode:new URLSearchParams(location.search).get('mode')||'multiplayer'}),init:cb=>cb({userId:new URLSearchParams(location.search).get('player'),roomId:'r'}),game:{connect:async()=>{},join:async()=>{},invite:async()=>({success:true,roomId:'r',invited:['b']}),onRoomAssigned:()=>{},onJoined:()=>{},onPlayerJoined:()=>{},onPlayerLeft:()=>{},onConnectionState:()=>{},onRealtime:()=>{},onError:()=>{}}};`}));
 await context.route('https://test.invalid/**',async route=>{
  const req=route.request(),url=new URL(req.url()),d=req.method()==='POST'?req.postDataJSON():null,voter=req.headers().authorization.split(' ')[1];let json;
  if(url.pathname==='/games/most/packs'){
-  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
-  else json={packs:packs.map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
+  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
+  else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||shared.has(p.id)).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
  }else if(url.pathname.endsWith('/records'))json={records:[{id:'r',createdAt:'2026-10-19T00:00:00Z',participants:people}],nextOffset:null};
  else if(url.pathname.endsWith('/vote')){if(!rows.some(v=>v.voter===voter&&v.question===d.question&&v.pack_id===d.pack_id))rows.push({...d,voter});json={success:true};}
- else if(d)json={success:true};
+ else if(d){if(url.pathname.endsWith('/pack'))shared.add(d.pack_id);json={success:true};}
  else json={participants:people,votes:rows.filter(r=>r.pack_id===url.searchParams.get('pack_id'))};
  await route.fulfill({json});
 });
@@ -45,13 +46,14 @@ try{
  await home.getByRole('button',{name:'📖 Records',exact:true}).click();await home.locator('[data-record="r"]').click();await home.locator('[data-pack="friends-v1"]').click();await home.locator('.vote-result').first().waitFor();assert.equal(await home.locator('article').count(),14);
  assert.equal(await home.locator('article').first().locator('.vote-result .voters .avatar').count(),2);
  await home.screenshot({path:new URL('../artifacts/most-records.png',import.meta.url).pathname});
+ await b.reload();await b.locator('[data-pack="friends-v1"]').waitFor();
  // Create and play a custom pack without changing any previous votes.
  await home.getByRole('button',{name:'Question packs',exact:true}).click();await home.getByRole('button',{name:'＋ Create a pack',exact:true}).click();
  await home.locator('input[name="title"]').fill('Weekend crew');await home.locator('textarea[name="q0"]').fill('Who would plan the best road trip?');
  await home.getByRole('button',{name:'＋ Add question',exact:true}).click();await home.locator('textarea[name="q1"]').fill('Who would forget their suitcase?');
  assert.equal(await home.locator('input[name="title"]').inputValue(),'Weekend crew');assert.equal(await home.locator('textarea[name="q0"]').inputValue(),'Who would plan the best road trip?');
  await home.screenshot({path:new URL('../artifacts/most-pack-create.png',import.meta.url).pathname});
- await home.getByRole('button',{name:'Save pack',exact:true}).click();await home.getByRole('button',{name:/Weekend crew/}).click();
+ await home.getByRole('button',{name:'Save pack',exact:true}).click();await b.getByRole('button',{name:/Weekend crew/}).waitFor();await home.getByRole('button',{name:/Weekend crew/}).click();
  await home.getByText('1 / 2',{exact:true}).waitFor();await home.locator('[data-choice="c"]').click();await home.locator('.stamp').waitFor();assert.equal(rows.length,16);
  await home.reload();await home.getByRole('button',{name:/Weekend crew/}).click();await home.getByRole('button',{name:'Play with friends',exact:true}).click();await home.getByText('2 / 2',{exact:true}).waitFor();
  await home.locator('[data-choice="b"]').click();await home.getByRole('button',{name:'Next question',exact:true}).click();await home.locator('.results').waitFor();assert.equal(await home.locator('article').count(),2);

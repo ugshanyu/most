@@ -11,7 +11,9 @@ screen these come only from the viewer's joined games; inside a game they come
 only from that room. No global disclosure of private answers or friend activity.
 
 Users can create immutable packs with a name and 1–30 unique questions. Custom
-packs are private to the creator until shared into a joined game. Members of
+packs created inside a game are shared with that game on Save. Packs created
+without a game stay private until shared into a joined game. Pack lists refresh
+automatically so friends see newly shared packs without reopening. Members of
 that game can read/play the pack and reuse it in their own joined games. Pack
 creation retries use a UUID. Up to 100 packs per creator; title 2–60 characters,
 questions 8–180 characters. User text is escaped on display.

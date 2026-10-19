@@ -71,11 +71,13 @@ async function api(path='',body,global=false){
  }
 }
 const packTitle=p=>p.id==='friends-v1'?(lang==='mn'?'Хэн бэ':'Who is'):lang==='mn'?(p.titleMn||p.title):p.title;
-async function showPacks(){
- view='packs';packsLoading=true;error='';render();
+async function showPacks(background=false){
+ if(background&&(view!=='packs'||packsLoading||busy))return;
+ const targetRoom=room;
+ if(!background){view='packs';error='';}packsLoading=true;if(!background)render();
  if(!sdk){catalog=[activePack];packsLoading=false;render();return;}
- try{const d=await api('/packs'+(room?'?room_id='+encodeURIComponent(room):''),undefined,true);catalog=d.packs;}
- catch{error=t('error');}finally{packsLoading=false;render();}
+ try{const d=await api('/packs'+(room?'?room_id='+encodeURIComponent(room):''),undefined,true);if(view==='packs'&&room===targetRoom)catalog=d.packs;}
+ catch{if(!background)error=t('error');}finally{packsLoading=false;if(view==='packs'&&room===targetRoom)render();}
 }
 async function openPack(id){
  const p=catalog.find(p=>p.id===id)||activePack;if(p.id!==id)return;
@@ -118,7 +120,7 @@ function sendChat(text){if(!text.trim()||text.length>80||Date.now()-lastChat<700
 root.addEventListener('error',e=>{if(e.target.tagName==='IMG')e.target.remove();},true);
 root.addEventListener('input',e=>{if(view==='create'&&draft){if(e.target.name==='title')draft.title=e.target.value;else if(e.target.name?.startsWith('q'))draft.questions[Number(e.target.name.slice(1))]=e.target.value;}});
 root.addEventListener('submit',async e=>{e.preventDefault();if(!e.target.matches('[data-pack-form]')){sendChat(e.target.querySelector('input').value);return;}if(busy)return;busy=true;error='';
- try{const p=await api('/packs',{request_id:draft.id,title:draft.title,questions:draft.questions},true);activePack=p;draft=null;recordsOnly=false;await showPacks();}catch{error=t('packError');}finally{busy=false;render();}
+ try{const p=await api('/packs',{request_id:draft.id,title:draft.title,questions:draft.questions},true);if(room)await api('/pack',{pack_id:p.id});activePack=p;draft=null;recordsOnly=false;await showPacks();}catch{error=t('packError');}finally{busy=false;render();}
 });
 root.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b||b.disabled||busy||(b.closest('form')&&b.type==='submit'&&!b.dataset.action))return;busy=true;
@@ -143,6 +145,6 @@ root.addEventListener('click',async e=>{
   else if(a?.startsWith('phrase-'))sendChat(t('phrases')[Number(a.slice(7))]);
  }catch(e){error=t(e.message==='GROUP_TOO_LARGE'?'large':'error');}finally{busy=false;render();}
 });
-let pulse=Date.now();setInterval(()=>{if(room&&view==='play'){if(Date.now()-lastRefresh>=1800)void refresh();else render();}pulse=Date.now();},2000);
+let pulse=Date.now();setInterval(()=>{if(room&&view==='play'){if(Date.now()-lastRefresh>=1800)void refresh();else render();}if(sdk&&view==='packs')void showPacks(true);pulse=Date.now();},2000);
 function boot(c){me=String(c.userId||'');lang=String(sdk?.getLanguage()||navigator.language).startsWith('mn')?'mn':'en';if(sdk){wire();if(sdk.getLaunchParams().mode==='multiplayer')void enter(c.roomId).catch(()=>{error=t('error');render();});else void showPacks();}else{catalog=[activePack];}render();}
 if(window.Usion){sdk=window.Usion;sdk.init(boot);}else boot({});
