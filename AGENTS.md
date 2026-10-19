@@ -1,6 +1,6 @@
 - Read README.md and docs/HANDOFF.md before changing the app.
 - Edit src/, not generated public/index.html. Run npm test and npm run build.
-- Show other players’ picks only in end results/records, never on voting cards. Keep locked picks, all ties, EN/MN, and reconnect recovery.
+- Show other players’ picks only in end results/records, never on voting cards. Allow changing draft picks until Next submits them; then keep submitted picks locked, all ties, EN/MN, and reconnect recovery.
 - No leaderboard or automatic profile posting.
 - Never bundle the test relay into production or commit secrets/.vercel.
 - Main deploys production; preserve other collaborators' changes.

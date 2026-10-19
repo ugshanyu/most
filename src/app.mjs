@@ -2,10 +2,9 @@ import {questions,legacyQuestions,colors} from './questions.mjs';
 import {votesFor,nextUnanswered,winners} from './model.mjs';
 const root=document.querySelector('main');
 const strings={en:{packs:'Question packs',create:'Create a pack',packName:'Pack name',visibility:'Who can see this pack?',private:'Private',public:'Public',question:'Question',addQuestion:'Add question',savePack:'Save pack',remove:'Remove',packError:'Use a name and 1–30 different questions (8–180 characters each).',questionCount:'questions',records:'Records',continue:'Continue playing',home:'Home',noRecords:'No games yet',more:'Load more',loading:'Loading…',invite:'Play with friends',ready:'Ready',unready:'Not ready',start:'Let’s go',next:'Next question',replay:'Play again',waiting:'Waiting for friends…',hostWait:'Waiting for the host…',votes:'voted',skip:'Continue without absent players',offline:'Reconnecting…',error:'Couldn’t connect. Tap Retry.',retry:'Retry',you:'You',stamp:'MY PICK',finish:'The group has spoken 👀',large:'This group is too large. Invite a smaller group to play.',local:'Open Most in Usions to invite friends.',chat:'Chat',send:'Send',phrases:['Really? 👀','Definitely you 😂','Explain yourself','I knew it','No way','That’s fair 🤝'],absent:'Away',late:'You can vote on the next question',empty:'No votes'},mn:{packs:'Асуултын багцууд',create:'Багц үүсгэх',packName:'Багцын нэр',visibility:'Багцыг хэн харах вэ?',private:'Хаалттай',public:'Нийтэд нээлттэй',question:'Асуулт',addQuestion:'Асуулт нэмэх',savePack:'Багц хадгалах',remove:'Хасах',packError:'Нэр болон 8–180 тэмдэгттэй, давхардаагүй 1–30 асуулт оруулна уу.',questionCount:'асуулт',records:'Түүх',continue:'Үргэлжлүүлэн тоглох',home:'Нүүр',noRecords:'Тоглосон тоглоом алга',more:'Цааш үзэх',loading:'Уншиж байна…',invite:'Найзуудтайгаа тоглох',ready:'Бэлэн',unready:'Бэлэн биш',start:'Эхэлцгээе',next:'Дараагийн асуулт',replay:'Дахин тоглох',waiting:'Найзуудаа хүлээж байна…',hostWait:'Эхлүүлэхийг хүлээж байна…',votes:'санал өгсөн',skip:'Байхгүй тоглогчгүйгээр үргэлжлүүлэх',offline:'Дахин холбогдож байна…',error:'Холбогдож чадсангүй. Дахин оролдоорой.',retry:'Дахин оролдох',you:'Чи',stamp:'МИНИЙ СОНГОЛТ',finish:'Найзууд ингэж бодож байна 👀',large:'Бүлэг хэт том байна. Цөөн хүнтэй бүлгээр тоглоорой.',local:'Найзуудаа урихын тулд Usions-д нээгээрэй.',chat:'Чат',send:'Илгээх',phrases:['Нээрээ юу? 👀','Яг чи 😂','Тайлбарлаарай','Мэдэж байсан','Үгүй байлгүй','Зөв өө 🤝'],absent:'Түр гарсан',late:'Дараагийн асуултаас санал өгнө',empty:'Санал алга'}};
-let sdk,me='',lang='en',room='',people=[],rows=[],round=0,loaded=false,online=true,busy=false,error='',chatOpen=false,loading=false,lastRefresh=0;
+let sdk,me='',lang='en',room='',people=[],rows=[],round=0,loaded=false,online=true,busy=false,error='',pendingPick='',loading=false,lastRefresh=0;
 let activePack={id:'friends-v1',title:'Who is',titleMn:'Хэн бэ',questions},questionSet=questions,catalog=[],packsLoading=false,recordsOnly=false,draft=null;
 let view='packs',recordList=[],nextOffset=null,recordsLoading=false,review=false;
-const away=new Map(),chatTimes=new Map();let lastChat=0;
 const t=k=>strings[lang][k],state=()=>({round,phase:round===questionSet.length?'done':'question',candidates:people,votes:votesFor(rows,questionSet[round]?.id),history:questionSet.filter(q=>activePack.id!=='legacy'||Object.keys(votesFor(rows,q.id)).length).map(q=>({questionId:q.id,votes:votesFor(rows,q.id)}))});
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const person=id=>people.find(p=>p.id===id)||state().candidates.find(p=>p.id===id)||{id,name:'Player'};
@@ -34,7 +33,7 @@ window.addEventListener('pointercancel',releasePointer);
 window.addEventListener('blur',()=>{pressedPointers.clear();if(renderPending)render();});
 function render(){
  if(pressedPointers.size){renderPending=true;return;}renderPending=false;
- const s=state(),locked=Object.hasOwn(s.votes,me);
+ const s=state(),locked=Object.hasOwn(s.votes,me),pick=s.votes[me]??pendingPick;
  document.documentElement.lang=lang;document.body.style.setProperty('--bg',colors[s.round%colors.length]);root.className=['records','packs','create'].includes(view)?'records-page':!room?'entry':'';
  let html='';
  if(view==='packs'){
@@ -53,10 +52,9 @@ function render(){
   html=`<h1>${t('records')}</h1><div class="actions">${activePack.id!=='legacy'?button(t('continue'),'continue',busy):''}${button(t('packs'),'packs',busy,'secondary')}</div><div class="results">${s.history.map(row=>{const q=questionSet.find(q=>q.id===row.questionId);return `<article class="result"><h2>${q.emoji} ${esc(q[lang])}</h2>${resultRows(row.votes)}</article>`;}).join('')}</div>`;
  }else{
   const q=questionSet[s.round];
-  html=`<div class="top"><span></span><span>${s.round+1} / ${questionSet.length}</span></div><h1><span class="emoji">${q.emoji}</span>${esc(q[lang])}</h1><div class="grid">${s.candidates.filter(p=>p.id!==me).map(p=>`<button class="person ${s.votes[me]===p.id?'selected':''}" data-choice="${esc(p.id)}" ${p.id===me||locked||busy||!online?'disabled':''}>${s.votes[me]===p.id?`<span class="stamp">✓ ${t('stamp')}</span>`:''}${avatar(p)}<strong class="name">${esc(p.name)}</strong><span class="voters" aria-hidden="true"></span></button>`).join('')}</div><div class="footer"><p class="progress" aria-hidden="true">&nbsp;</p>${locked?button(t('next'),'next',busy):''}</div>`;
+  html=`<div class="top"><span></span><span>${s.round+1} / ${questionSet.length}</span></div><h1><span class="emoji">${q.emoji}</span>${esc(q[lang])}</h1><div class="grid">${s.candidates.filter(p=>p.id!==me).map(p=>`<button class="person ${pick===p.id?'selected':''}" data-choice="${esc(p.id)}" ${p.id===me||locked||busy||!online?'disabled':''}>${pick===p.id?`<span class="stamp">✓ ${t('stamp')}</span>`:''}${avatar(p)}<strong class="name">${esc(p.name)}</strong><span class="voters" aria-hidden="true"></span></button>`).join('')}</div><div class="footer"><p class="progress" aria-hidden="true">&nbsp;</p>${pick?button(t('next'),'next',busy||!online):''}</div>`;
  }
  html+=`<p class="status" role="status">${esc(!online?t('offline'):error)}</p>${error?button(t('retry'),'retry',busy,'secondary'):''}`;
- if(room&&view==='play'&&!review)html+=`<button class="chat-toggle" data-action="chat" aria-label="${t('chat')}">💬</button>${chatOpen?`<div class="chat-panel"><div class="phrases">${t('phrases').map((v,i)=>button(v,'phrase-'+i,false,'secondary')).join('')}</div><form><input maxlength="80" aria-label="${t('chat')}"><button class="secondary">${t('send')}</button></form></div>`:''}`;
  if(html!==lastRendered){root.innerHTML=html;lastRendered=html;}
 }
 async function api(path='',body,global=false){
@@ -81,7 +79,7 @@ async function showPacks(background=false){
 }
 async function openPack(id){
  const p=catalog.find(p=>p.id===id)||activePack;if(p.id!==id)return;
- activePack=p;questionSet=p.questions||(p.id==='legacy'?legacyQuestions:questions);round=0;loaded=false;rows=[];
+ pendingPick='';activePack=p;questionSet=p.questions||(p.id==='legacy'?legacyQuestions:questions);round=0;loaded=false;rows=[];
  if(!room){view='selected';return;}
  if(!recordsOnly&&id!=='legacy')await api('/pack',{pack_id:id});
  review=recordsOnly||id==='legacy';view='play';await refresh();
@@ -98,7 +96,7 @@ async function refresh(){
  catch{error=t('error');}finally{loading=false;render();}
 }
 async function enter(id,start=false){
- if(room!==id){people=[];rows=[];loaded=false;round=0;room=id;}
+ if(room!==id){people=[];rows=[];pendingPick='';loaded=false;round=0;room=id;}
  await sdk.game.connect();await sdk.game.join(room);
  if(start)await openPack(activePack.id);else{
   await showPacks();
@@ -106,24 +104,20 @@ async function enter(id,start=false){
  }
 }
 function wire(){
- sdk.game.onRoomAssigned(d=>{if(room!==d.roomId){people=[];rows=[];loaded=false;round=0;room=d.roomId;}});
+ sdk.game.onRoomAssigned(d=>{if(room!==d.roomId){people=[];rows=[];pendingPick='';loaded=false;round=0;room=d.roomId;}});
  sdk.game.onJoined(()=>{online=true;void refresh();});
  sdk.game.onPlayerJoined(()=>void refresh());
  sdk.game.onPlayerLeft(()=>void refresh());
  sdk.game.onConnectionState(s=>{online=s==='connected'||s==='reconnected';if(online)void refresh();render();});
- sdk.game.onRealtime(d=>{if(!review&&view==='play'&&d.action_type==='quick_chat'&&people.some(p=>p.id===d.player_id))bubble(d.player_id,d.action_data?.phrase);});
  sdk.game.onError(()=>{error=t('error');render();});
 }
-let bubbleTimer;
-function bubble(id,text){if(typeof text!=='string'||text.length>80||Date.now()-(chatTimes.get(id)||0)<700)return;chatTimes.set(id,Date.now());document.querySelector('.bubble')?.remove();const el=document.createElement('div');el.className='bubble';el.textContent=person(id).name+': '+text;document.body.append(el);clearTimeout(bubbleTimer);bubbleTimer=setTimeout(()=>el.remove(),3000);}
-function sendChat(text){if(!text.trim()||text.length>80||Date.now()-lastChat<700)return;lastChat=Date.now();sdk.game.realtime('quick_chat',{phrase:text.trim()});bubble(me,text.trim());chatOpen=false;render();}
 root.addEventListener('error',e=>{if(e.target.tagName==='IMG')e.target.remove();},true);
 root.addEventListener('input',e=>{if(view==='create'&&draft){if(e.target.name==='visibility')draft.visibility=e.target.value;else if(e.target.name==='title')draft.title=e.target.value;else if(e.target.name?.startsWith('q'))draft.questions[Number(e.target.name.slice(1))]=e.target.value;}});
-root.addEventListener('submit',async e=>{e.preventDefault();if(!e.target.matches('[data-pack-form]')){sendChat(e.target.querySelector('input').value);return;}if(busy)return;busy=true;error='';
+root.addEventListener('submit',async e=>{e.preventDefault();if(!e.target.matches('[data-pack-form]'))return;if(busy)return;busy=true;error='';
  try{const p=await api('/packs',{request_id:draft.id,title:draft.title,questions:draft.questions,visibility:draft.visibility},true);if(room)await api('/pack',{pack_id:p.id});activePack=p;draft=null;recordsOnly=false;await showPacks();}catch{error=t('packError');}finally{busy=false;render();}
 });
 root.addEventListener('click',async e=>{
- const b=e.target.closest('button');if(!b||b.disabled||busy||(b.closest('form')&&b.type==='submit'&&!b.dataset.action))return;busy=true;
+ const b=e.target.closest('button');if(!b||b.disabled||busy||(b.closest('form')&&b.type==='submit'&&!b.dataset.action))return;busy=true;let scrollToTop=false;
  try{
   const a=b.dataset.action;
   if(b.dataset.pack){await openPack(b.dataset.pack);}
@@ -136,14 +130,21 @@ root.addEventListener('click',async e=>{
   else if(a==='home'){room='';review=false;recordsOnly=false;await showPacks();}
   else if(a==='review'){review=true;await refresh();}
   else if(a==='continue'){recordsOnly=false;round=nextUnanswered(rows,me,questionSet);if(round===questionSet.length)round=0;review=false;await enter(room,true);}
-  else if(b.dataset.choice&&b.dataset.choice!==me){await api('/vote',{question:questionSet[round].id,candidate:b.dataset.choice,pack_id:activePack.id});await refresh();}
+  else if(b.dataset.choice&&b.dataset.choice!==me){pendingPick=b.dataset.choice;error='';}
   else if(a==='invite'){if(!sdk)error=t('local');else{sessionStorage.setItem('most-pending-pack',JSON.stringify({id:activePack.id,user:me}));const r=await sdk.game.invite({maxPlayers:16});sessionStorage.removeItem('most-pending-pack');if(r.success){await enter(r.roomId,true);await api('/invitees',{invited:r.invited||[]});await refresh();}}}
   else if(a==='replay')round=0;
-  else if(a==='next')round=Math.min(questionSet.length,round+1);
+  else if(a==='next'){
+   const question=questionSet[round]?.id;if(!question)return;
+   if(!Object.hasOwn(votesFor(rows,question),me)){
+    if(!pendingPick)return;
+    const candidate=pendingPick;render();
+    await api('/vote',{question,candidate,pack_id:activePack.id});
+    const saved=await api('?pack_id='+encodeURIComponent(activePack.id));rows=saved.votes;people=saved.participants;
+   }
+   pendingPick='';error='';round=Math.min(questionSet.length,round+1);scrollToTop=true;
+  }
   else if(a==='retry'){if(view==='records')await showRecords();else if(view==='packs')await showPacks();else await refresh();}
-  else if(a==='chat')chatOpen=!chatOpen;
-  else if(a?.startsWith('phrase-'))sendChat(t('phrases')[Number(a.slice(7))]);
- }catch(e){error=t(e.message==='GROUP_TOO_LARGE'?'large':'error');}finally{busy=false;render();}
+ }catch(e){error=t(e.message==='GROUP_TOO_LARGE'?'large':'error');}finally{busy=false;render();if(scrollToTop)window.scrollTo(0,0);}
 });
 let pulse=Date.now();setInterval(()=>{if(room&&view==='play'){if(Date.now()-lastRefresh>=1800)void refresh();else render();}if(sdk&&view==='packs')void showPacks(true);pulse=Date.now();},2000);
 function boot(c){me=String(c.userId||'');lang=String(sdk?.getLanguage()||navigator.language).startsWith('mn')?'mn':'en';if(sdk){wire();if(sdk.getLaunchParams().mode==='multiplayer')void enter(c.roomId).catch(()=>{error=t('error');render();});else void showPacks();}else{catalog=[activePack];}render();}

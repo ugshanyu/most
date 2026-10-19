@@ -36,7 +36,9 @@ chat. The pending selected pack is held in sessionStorage across the host's
 invite remount. Ordinary reloads reopen the pack catalog with saved progress.
 Pack questions and IDs are immutable once created; the server validates all votes.
 
-Voting choices exclude the current user. Voting screens show only your own selection stamp; other picks and voter icons
+Voting choices exclude the current user. Picks are editable drafts until Next
+submits the final choice. Failed submissions stay on the question for retry.
+Next scrolls to the top; there is no in-game chat control. Voting screens show only your own selection stamp; other picks and voter icons
 are revealed in end results and records, with no in-round records shortcut.
 Keep real voter icons in results, vote percentages/bars, one selection stamp, stable card
 sizes, equal action buttons and EN/MN. No leaderboard or automatic profile posts.

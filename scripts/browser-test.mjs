@@ -3,7 +3,8 @@ import {questions} from '../src/questions.mjs';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const html=await readFile(new URL('../public/index.html',import.meta.url));
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(html)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844}});const errors=[],rows=[],people=['a','b','c'].map(id=>({id,name:id}));
+const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844}});const errors=[],rows=[],people=['a','b','c','d','e','f','g','h','i'].map(id=>({id,name:id}));
+let failNextVote=false;
 const shared=new Set();
 const packs=[{id:'friends-v1',title:'The friend test 👀',questions}];
 await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascript',body:`window.Usion={config:{apiUrl:'https://test.invalid'},user:{getToken:()=>new URLSearchParams(location.search).get('player')},getLanguage:()=> 'en',getLaunchParams:()=>({mode:new URLSearchParams(location.search).get('mode')||'multiplayer'}),init:cb=>cb({userId:new URLSearchParams(location.search).get('player'),roomId:'r'}),game:{connect:async()=>{},join:async()=>{},invite:async()=>({success:true,roomId:'r',invited:['b']}),onRoomAssigned:()=>{},onJoined:()=>{},onPlayerJoined:()=>{},onPlayerLeft:()=>{},onConnectionState:()=>{},onRealtime:()=>{},onError:()=>{}}};`}));
@@ -13,7 +14,7 @@ await context.route('https://test.invalid/**',async route=>{
   if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,visibility:d.visibility||'private',questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
   else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||p.visibility==='public'||(shared.has(p.id)&&people.some(person=>person.id===voter))).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
  }else if(url.pathname.endsWith('/records'))json={records:[{id:'r',createdAt:'2026-10-19T00:00:00Z',participants:people}],nextOffset:null};
- else if(url.pathname.endsWith('/vote')){if(!rows.some(v=>v.voter===voter&&v.question===d.question&&v.pack_id===d.pack_id))rows.push({...d,voter});json={success:true};}
+ else if(url.pathname.endsWith('/vote')){if(failNextVote){failNextVote=false;await route.fulfill({status:503,json:{error:'Retry'}});return;}if(!rows.some(v=>v.voter===voter&&v.question===d.question&&v.pack_id===d.pack_id))rows.push({...d,voter});json={success:true};}
  else if(d){if(url.pathname.endsWith('/pack'))shared.add(d.pack_id);json={success:true};}
  else json={participants:people,votes:rows.filter(r=>r.pack_id===url.searchParams.get('pack_id'))};
  await route.fulfill({json});
@@ -23,8 +24,16 @@ try{
  await mkdir(new URL('../artifacts',import.meta.url),{recursive:true});
  const a=await open('a');await a.getByRole('button',{name:/Who is/}).waitFor();assert.equal(await a.getByRole('button',{name:'Home',exact:true}).count(),0);await a.locator('[data-pack="friends-v1"]').click();
  assert.equal(await a.locator('[data-choice="a"]').count(),0);
+ assert.equal(await a.locator('[data-action="chat"],.chat-toggle,.chat-panel').count(),0);
  const before=await a.locator('[data-choice="b"]').boundingBox();
- for(let i=0;i<14;i++){await a.locator('[data-choice="b"]').click();await a.locator('.stamp').waitFor();assert.equal(await a.locator('.stamp').count(),1);if(i===0){const after=await a.locator('[data-choice="b"]').boundingBox();assert.equal(before.height,after.height);}await a.getByRole('button',{name:'Next question',exact:true}).click();}
+ await a.locator('[data-choice="c"]').click();await a.locator('[data-choice="c"] .stamp').waitFor();
+ await a.waitForTimeout(2200);assert.equal(rows.length,0);
+ await a.locator('[data-choice="b"]').click();await a.locator('[data-choice="b"] .stamp').waitFor();
+ assert.equal(await a.locator('[data-choice="c"] .stamp').count(),0);assert.equal(rows.length,0);
+ failNextVote=true;await a.getByRole('button',{name:'Next question',exact:true}).click();
+ await a.getByRole('button',{name:'Retry',exact:true}).waitFor();assert.equal(rows.length,0);
+ await a.getByText('1 / 14',{exact:true}).waitFor();
+ for(let i=0;i<14;i++){await a.locator('[data-choice="b"]').click();await a.locator('.stamp').waitFor();assert.equal(await a.locator('.stamp').count(),1);if(i===0){const after=await a.locator('[data-choice="b"]').boundingBox();assert.equal(before.height,after.height);await a.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));assert.ok(await a.evaluate(()=>window.scrollY)>0);}await a.getByRole('button',{name:'Next question',exact:true}).click();if(i<13){await a.getByText(`${i+2} / 14`,{exact:true}).waitFor();assert.equal(await a.evaluate(()=>window.scrollY),0);}}
  await a.locator('.results').waitFor();assert.equal(rows.length,14);
  await a.reload();await a.locator('[data-pack="friends-v1"] .avatar').first().waitFor();await a.locator('[data-pack="friends-v1"]').click();await a.locator('.results').waitFor();
  const b=await open('b');await b.locator('[data-pack="friends-v1"]').click();
@@ -33,6 +42,7 @@ try{
  await b.locator('[data-choice="a"]').click();
  assert.equal(await b.locator('.grid .voters .avatar').count(),0);
  const next=b.getByRole('button',{name:'Next question',exact:true});
+ await next.scrollIntoViewIfNeeded();
  const nextNode=await next.elementHandle(),box=await next.boundingBox();
  await b.mouse.move(box.x+box.width/2,box.y+box.height/2);await b.mouse.down();
  rows.push({pack_id:'friends-v1',question:questions[0].id,voter:'c',candidate:'a'});
@@ -54,7 +64,7 @@ try{
  assert.equal(await home.locator('input[name="title"]').inputValue(),'Weekend crew');assert.equal(await home.locator('textarea[name="q0"]').inputValue(),'Who would plan the best road trip?');
  await home.screenshot({path:new URL('../artifacts/most-pack-create.png',import.meta.url).pathname});
  await home.getByRole('button',{name:'Save pack',exact:true}).click();await b.getByRole('button',{name:/Weekend crew/}).waitFor();await home.getByRole('button',{name:/Weekend crew/}).click();
- await home.getByText('1 / 2',{exact:true}).waitFor();await home.locator('[data-choice="c"]').click();await home.locator('.stamp').waitFor();assert.equal(rows.length,16);
+ await home.getByText('1 / 2',{exact:true}).waitFor();await home.locator('[data-choice="c"]').click();await home.locator('.stamp').waitFor();assert.equal(rows.length,15);await home.getByRole('button',{name:'Next question',exact:true}).click();await home.getByText('2 / 2',{exact:true}).waitFor();assert.equal(rows.length,16);
  await home.reload();await home.getByRole('button',{name:/Weekend crew/}).click();await home.getByRole('button',{name:'Play with friends',exact:true}).click();await home.getByText('2 / 2',{exact:true}).waitFor();
  await home.locator('[data-choice="b"]').click();await home.getByRole('button',{name:'Next question',exact:true}).click();await home.locator('.results').waitFor();assert.equal(await home.locator('article').count(),2);
  await home.getByRole('button',{name:'Question packs',exact:true}).click();assert.equal(await home.getByRole('button',{name:/Weekend crew/}).locator('.avatar').count(),1);
