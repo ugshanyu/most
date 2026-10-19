@@ -34,4 +34,6 @@ The home Records button lists joined rooms via GET /games/most/records, with
 20-room pages and member-only authorization. Opening a record reads the existing
 room without casting a vote or requiring everyone to finish. The book icon in
 play opens current answers; Continue playing resumes the next unanswered item.
-Every voter → candidate row is visible by default, including non-winning picks.
+Results list each selected person with their percentage of submitted votes, a
+horizontal bar, and the icons of everyone who selected them. All picks appear,
+ordered by votes; no repeated winner summary or expandable answer list.

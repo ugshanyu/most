@@ -12,6 +12,14 @@ const active=()=>people.filter(p=>p.joined&&p.connected).map(p=>p.id).slice(0,16
 function avatar(p,small=false){const url=typeof p.avatar==='string'&&/^https:\/\//.test(p.avatar)?p.avatar:'';return `<span class="avatar ${small?'small':''}" title="${esc(p.name)}" aria-label="${esc(p.name)}">${esc(p.name?.slice(0,1)||'?')}${url?`<img src="${esc(url)}" alt="" draggable="false" referrerpolicy="no-referrer">`:''}</span>`;}
 function button(label,action,disabled=false,cls='primary'){return `<button class="${cls}" data-action="${action}" ${disabled?'disabled':''}>${esc(label)}</button>`;}
 function voteAvatars(votes,candidate){return Object.entries(votes).filter(([,pick])=>pick===candidate).map(([id])=>avatar(person(id),true)).join('');}
+function resultRows(votes){
+ const total=Object.keys(votes).length;if(!total)return `<p>${t('empty')}</p>`;
+ const counts={};for(const id of Object.values(votes))counts[id]=(counts[id]||0)+1;
+ return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([id,count])=>{
+  const percent=Math.round(count/total*100),p=person(id);
+  return `<div class="vote-result"><div class="vote-heading">${avatar(p,true)}<strong>${esc(p.name)}</strong><span>${percent}%</span></div><div class="vote-track" role="meter" aria-label="${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${count/total*100}%"></span></div><div class="voters" aria-label="${t('votes')}">${voteAvatars(votes,id)}</div></div>`;
+ }).join('');
+}
 function render(){
  const s=state(),locked=Object.hasOwn(s.votes,me);
  document.documentElement.lang=lang;document.body.style.setProperty('--bg',colors[s.round%colors.length]);root.className=view==='records'?'records-page':!room?'entry':'';
@@ -22,7 +30,7 @@ function render(){
  if(room&&!loaded){html=`<h1>Most 👀</h1>`;}
  else if(!room){html=`<h1>Most 👀</h1>${button(t('invite'),'invite',busy)}${button('📖 '+t('records'),'records',busy,'secondary')}`;}
  else if(s.phase==='done'||review){
-  html=`<h1>${t('records')}</h1>${button(t('continue'),'continue',busy)}${button('📖 '+t('records'),'records',busy,'secondary')}<div class="results">${s.history.map(row=>{const q=questions.find(q=>q.id===row.questionId);return `<article class="result"><h2>${q.emoji} ${esc(q[lang])}</h2><div class="people">${winners(row.votes).map(id=>`<div>${avatar(person(id))}<p><strong>${esc(person(id).name)}</strong></p><div class="voters">${voteAvatars(row.votes,id)}</div></div>`).join('')||t('empty')}</div><details open><summary>${Object.keys(row.votes).length} ${t('votes')}</summary>${Object.entries(row.votes).map(([v,c])=>`<p class="answer-row">${avatar(person(v),true)}<span>${esc(person(v).name)}</span><span>→</span>${avatar(person(c),true)}<strong>${esc(person(c).name)}</strong></p>`).join('')}</details></article>`;}).join('')}</div>`;
+  html=`<h1>${t('records')}</h1>${button(t('continue'),'continue',busy)}${button('📖 '+t('records'),'records',busy,'secondary')}<div class="results">${s.history.map(row=>{const q=questions.find(q=>q.id===row.questionId);return `<article class="result"><h2>${q.emoji} ${esc(q[lang])}</h2>${resultRows(row.votes)}</article>`;}).join('')}</div>`;
  }else{
   const q=questions[s.round];
   html=`<div class="top"><button class="records-icon" data-action="review" aria-label="${t('records')}">📖</button><span>${s.round+1} / 15</span></div><h1><span class="emoji">${q.emoji}</span>${esc(q[lang])}</h1><div class="grid">${s.candidates.map(p=>`<button class="person ${s.votes[me]===p.id?'selected':''}" data-choice="${esc(p.id)}" ${locked||busy||!online?'disabled':''}>${s.votes[me]===p.id?`<span class="stamp">✓ ${t('stamp')}</span>`:''}${avatar(p)}<strong class="name">${esc(p.name)}</strong><span class="voters">${voteAvatars(s.votes,p.id)}</span></button>`).join('')}</div><div class="footer"><p class="progress" aria-live="polite">${Object.keys(s.votes).length} ${t('votes')}</p>${locked?button(t('next'),'next',busy):''}</div>`;
