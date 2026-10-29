@@ -1,45 +1,4 @@
-"""Publish the approved immutable classroom pack using the owner seed route.
-
-Dry run by default. Commit and push the JSON before --apply. Existing packs
-must match exactly: never rewrite question IDs/text attached to saved ballots.
-"""
-import argparse
-from datetime import datetime, timezone
-import json
+"""Compatibility entrypoint: publish the current packs, never resurrect classroom v1."""
 from pathlib import Path
-from dotenv import dotenv_values
-from pymongo import MongoClient
-
-p = argparse.ArgumentParser()
-p.add_argument('--env', required=True)
-p.add_argument('--apply', action='store_true')
-a = p.parse_args()
-root = Path(__file__).resolve().parents[1]
-source = json.loads((root / 'packs/manai-angiinhan-mn-v1.json').read_text())
-questions = [{k: q[k] for k in ('id', 'emoji', 'en', 'mn')} for q in source['questions']]
-assert len(questions) == 30
-assert len({q['mn'] for q in questions}) == 30
-assert all(8 <= len(q['mn']) <= 180 and q['emoji'] for q in questions)
-assert [q['id'] for q in questions] == ['q' + str(i) for i in range(1, 31)]
-v = dotenv_values(a.env)
-client = MongoClient(v['DATABASE_URL'])
-db = client[v['DATABASE_NAME']]
-service = db.services.find_one({'id': 'most'})
-owner = db.users.find_one({'id': service['creator_id'], 'username': 'ugshanyu'})
-assert owner, 'Confirm the intended service owner before publishing'
-pack = {'id': source['id'], 'creator_id': owner['id'], 'title': source['title'],
-        'visibility': 'public', 'questions': questions}
-old = db.most_packs.find_one({'id': pack['id']})
-if old:
-    assert all(old.get(k) == value for k, value in pack.items()), 'Immutable pack differs: stop'
-print(json.dumps({'id': pack['id'], 'title': pack['title'], 'visibility': 'public',
-                  'question_count': len(questions), 'already_exists': bool(old)}, ensure_ascii=False))
-if a.apply:
-    if not old:
-        assert db.most_packs.count_documents({'creator_id': owner['id']}) < 100
-        db.most_packs.update_one({'id': pack['id']}, {'$setOnInsert': {
-            **pack, 'created_at': datetime.now(timezone.utc)}}, upsert=True)
-    saved = db.most_packs.find_one({'id': pack['id']})
-    assert all(saved.get(k) == value for k, value in pack.items())
-    print('Published and read back all 30 questions. Verify the deployed catalog with the production backend runtime.')
-client.close()
+import runpy
+runpy.run_path(str(Path(__file__).with_name('publish-public-packs.py')),run_name='__main__')
