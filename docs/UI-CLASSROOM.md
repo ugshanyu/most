@@ -29,3 +29,27 @@ save/resume tests; `scripts/classroom-ui-check.mjs` checks real Mongolian text,
 44px minimum buttons and horizontal fit at 320/390/1024/1440px. Screenshots cover
 pack selection, solo questions, group voting, creation and results. Browser
 previews use test identities; native-device visual verification is not claimed.
+
+## Generated action buttons
+
+Primary actions now use `public/button-chalkboard-20261029.webp`; secondary
+actions use `public/button-wood-20261029.webp`. Both were generated with the
+built-in image tool on transparent backgrounds, then encoded as WebP quality 85.
+Labels remain actual localized button text, not pixels. Focus rings, press-down,
+hover and disabled states remain functional; reduced motion is respected.
+
+Wood prompt: One blank wide horizontal wooden classroom button, straight-on
+orthographic cutout, hand-illustrated cartoon game art. Honey-gold wood face,
+rounded irregular bevelled corners, dark brown outline, carved lower rim, subtle
+edge-only wood grain, clean empty center for dark text, brass screw at each end,
+small shadow, no words/icons/objects/ropes. Transparent background.
+
+Chalkboard prompt: One blank wide horizontal chalkboard button, orthographic
+transparent cutout, thick rounded honey-gold wooden frame, hand-painted carved
+bevel, raised lower edge, subtle shadow. Deep teal-green chalkboard inset with
+subtle texture and clean uniform center for cream live text, small brass end
+fasteners and tiny corner chalk dash. No lettering, objects, icons, or ropes.
+
+Verified the generated plates in pack selection, group voting, solo and forms.
+Unit/build/bundle, responsive 320–1440px, group privacy/Records interactions and
+solo save/resume suites pass. CSS references these versioned files directly.
