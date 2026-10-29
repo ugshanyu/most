@@ -7,7 +7,7 @@ const browser=await chromium.launch({headless:true});const context=await browser
 let failNextVote=false;
 const shared=new Set();
 const packs=[{id:'friends-v1',title:'The friend test 👀',questions}];
-await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascript',body:`window.Usion={config:{apiUrl:'https://test.invalid'},user:{getToken:()=>new URLSearchParams(location.search).get('player')},getLanguage:()=> 'en',getLaunchParams:()=>({mode:new URLSearchParams(location.search).get('mode')||'multiplayer'}),init:cb=>cb({userId:new URLSearchParams(location.search).get('player'),roomId:'r'}),game:{connect:async()=>{},join:async()=>{},invite:async()=>({success:true,roomId:'r',invited:['b']}),onRoomAssigned:()=>{},onJoined:()=>{},onPlayerJoined:()=>{},onPlayerLeft:()=>{},onConnectionState:()=>{},onRealtime:()=>{},onError:()=>{}}};`}));
+await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascript',body:`window.Usion={config:{apiUrl:'https://test.invalid'},user:{getToken:()=>new URLSearchParams(location.search).get('player')},getLanguage:()=>new URLSearchParams(location.search).get('lang')||'en',getLaunchParams:()=>({mode:new URLSearchParams(location.search).get('mode')||'multiplayer'}),init:cb=>cb({userId:new URLSearchParams(location.search).get('player'),roomId:'r'}),game:{connect:async()=>{},join:async()=>{},invite:async()=>({success:true,roomId:'r',invited:['b']}),onRoomAssigned:()=>{},onJoined:()=>{},onPlayerJoined:()=>{},onPlayerLeft:()=>{},onConnectionState:()=>{},onRealtime:()=>{},onError:()=>{}}};`}));
 await context.route('https://test.invalid/**',async route=>{
  const req=route.request(),url=new URL(req.url()),d=req.method()==='POST'?req.postDataJSON():null,voter=req.headers().authorization.split(' ')[1];let json;
  if(url.pathname==='/games/most/packs'){
@@ -23,7 +23,7 @@ await context.route('https://test.invalid/**',async route=>{
  }
  await route.fulfill({json});
 });
-const open=async(id,mode='multiplayer')=>{const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}/?player=${id}&mode=${mode}`);return page;};
+const open=async(id,mode='multiplayer',lang='en')=>{const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}/?player=${id}&mode=${mode}&lang=${lang}`);return page;};
 try{
  await mkdir(new URL('../artifacts',import.meta.url),{recursive:true});
  const a=await open('a');await a.getByRole('button',{name:/Who is/}).waitFor();assert.equal(await a.getByRole('button',{name:'Home',exact:true}).count(),0);await a.locator('[data-pack="friends-v1"]').click();
@@ -113,5 +113,10 @@ try{
  assert.equal(await home.locator('.results .voters').count(),0);
  assert.equal(await home.locator('article').first().locator('[role="meter"]').count(),2);
  assert.equal(rows.filter(v=>v.pack_id==='friends-v1').length,15);assert.deepEqual(errors,[]);
+ const mn=await open('a','single','mn');await mn.getByRole('button',{name:'＋ Багц үүсгэх',exact:true}).click();
+ await mn.setViewportSize({width:320,height:740});
+ await mn.locator('[name="voter_visibility"][value="hide"]').check();
+ assert.equal(await mn.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await mn.screenshot({path:new URL('../artifacts/most-hidden-create-mn.png',import.meta.url).pathname});
  console.log('PASS: 14-question pack, independent progress, percentage results, private records, answerer icons, custom creation, invite and reload, isolated votes.');
 }finally{await browser.close();server.close();}
