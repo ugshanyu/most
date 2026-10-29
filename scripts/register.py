@@ -30,11 +30,11 @@ async def main():
     if not check.ok:
         raise RuntimeError(str(check.issues))
     assert fetch(URL) == source, 'Deploy the committed bundle before registering'
-    icon = (ROOT/'public/icon-v1.svg').read_bytes()
-    assert fetch(URL+'/icon-v1.svg') == icon
+    icon = (ROOT/'public/manai-khamgiin-20261029-icon.webp').read_bytes()
+    assert fetch(URL+'/manai-khamgiin-20261029-icon.webp') == icon
     meta = json.loads((ROOT/'service.json').read_text())
-    reg = ServiceRegistrationCreate(name='Most', description=meta['description'], iframe_url=URL,
-        image=URL+'/icon-v1.svg', cost=0, service_type='game', genre='strategy',
+    reg = ServiceRegistrationCreate(name=meta['name'], description=meta['description'], iframe_url=URL,
+        image=URL+'/manai-khamgiin-20261029-icon.webp', cost=0, service_type='game', genre='strategy',
         tags=['game','multiplayer','iframe','quiz','social','free'], is_published=True,
         visibility='public', max_players=16, realtime={'connection_mode':'platform','connection_transport':'websocket'},
         leaderboard=meta['leaderboard'], sdk={'major':2,'protocol':2,'version':'2.33.0-dev.3','capabilities':['game']})
@@ -64,7 +64,7 @@ async def main():
             if keys: await redis.delete(*keys)
         except Exception:
             print('Listing cache will refresh at its normal 60-second TTL.')
-        receipt = {'id':'most','url':URL,'image':URL+'/icon-v1.svg','icon_sha256':hashlib.sha256(icon).hexdigest(),'sdk':'2.33.0-dev.3'}
+        receipt = {'id':'most','url':URL,'image':URL+'/manai-khamgiin-20261029-icon.webp','icon_sha256':hashlib.sha256(icon).hexdigest(),'sdk':'2.33.0-dev.3'}
         (ROOT/'release.json').write_text(json.dumps(receipt,indent=2)+'\n')
         print(json.dumps(receipt,indent=2))
     finally:

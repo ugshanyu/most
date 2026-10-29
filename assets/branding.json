@@ -1,0 +1,16 @@
+{
+  "id": "most",
+  "name": "Манай Хамгийн Хамгийн",
+  "files": {
+    "icon": {
+      "path": "public/manai-khamgiin-20261029-icon.webp",
+      "sha256": "041c1eca46ef0ff477d11c7f7948ab94fffcd7971a3fa47074cb1cae685b8886",
+      "key": "services/icons/most/041c1eca46ef0ff477d11c7f.webp"
+    },
+    "thumb": {
+      "path": "public/manai-khamgiin-20261029-thumb.webp",
+      "sha256": "fdeb0f140d4e245103dae2a3117b0ea56d52195f520f55542bdeb88d8fec2743",
+      "key": "services/icons/most/fdeb0f140d4e245103dae2a3.webp"
+    }
+  }
+}

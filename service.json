@@ -1,1 +1,19 @@
-{"id": "most", "name": "Most", "description": "Choose a question pack or create your own. Pick your friends and see everyone’s votes, whenever they answer.", "tags": ["game", "multiplayer"], "min_players": 2, "max_players": 16, "leaderboard": {"enabled": false, "order": "desc"}, "realtime": {"connection_mode": "platform"}}
+{
+  "id": "most",
+  "name": "Манай Хамгийн Хамгийн",
+  "description": "Choose a question pack or create your own. Pick your friends and see everyone’s votes, whenever they answer.",
+  "tags": [
+    "game",
+    "multiplayer"
+  ],
+  "min_players": 2,
+  "max_players": 16,
+  "leaderboard": {
+    "enabled": false,
+    "order": "desc"
+  },
+  "realtime": {
+    "connection_mode": "platform"
+  },
+  "image": "https://usion-most.vercel.app/manai-khamgiin-20261029-icon.webp"
+}
