@@ -1,6 +1,6 @@
 {
   "id": "custom-30ddc0bf3dd85e919844c26a2670dfbf",
-  "title": "Манай ангийнхан 🏫",
+  "title": "Манай ангийн хамгийн хамгийн 🏫",
   "visibility": "public",
   "language": "mn",
   "questions": [
@@ -185,5 +185,6 @@
       "mn": "Энэ асуулт бүр дээр «Яг чи!» гээд өөрөө сонгогдох хүн хэн бэ?"
     }
   ],
-  "replaces": "custom-26ba4c12b3be5822adac76b5f604b34b"
+  "replaces": "custom-26ba4c12b3be5822adac76b5f604b34b",
+  "previous_title": "Манай ангийнхан 🏫"
 }
