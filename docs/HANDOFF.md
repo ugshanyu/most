@@ -51,3 +51,21 @@ recovery, records, answerer icons, custom pack creation/invites, and vote isolat
 scripts/async-smoke.py verifies real production persistence/privacy with disposable
 identities. Never send real friends invitations for tests. Do not replace the
 user's native glass-menu build or take over their active encrypted chat session.
+
+## Solo name answers
+
+When launched without a multiplayer room, a selected pack offers Play solo,
+Play with friends, and ← Go back (localized in Mongolian). Solo asks for one
+name per question, not a participant roster. Answers use the private per-user,
+per-service Usion.storage key `most-solo-v1:<packId>`; each Next waits for the
+write acknowledgment before advancing. Failed writes retain the typed name.
+Reopening resumes at the first unanswered question; completion shows a private
+answer summary. Play again explicitly clears only that pack's solo answers.
+No solo name is sent to multiplayer voting, room membership, friends, or a
+leaderboard. A host room assignment exits solo and uses real participants.
+Standalone (without SDK) stores answers on the device only.
+
+`node scripts/solo-browser-test.mjs` covers typed names, failed reads/writes,
+retry, reload/resume, replay, HTML escaping, pack/account isolation, EN/MN,
+narrow screens, and promotion to multiplayer. These mocks do not verify live
+SDK persistence; verify saving and reloading separately through the Usions host.
