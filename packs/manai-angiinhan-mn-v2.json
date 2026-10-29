@@ -1,6 +1,6 @@
 {
   "id": "custom-30ddc0bf3dd85e919844c26a2670dfbf",
-  "title": "Манай ангийн хамгийн хамгийн 🏫",
+  "title": "Манай ангийн 🏫",
   "visibility": "public",
   "language": "mn",
   "questions": [
@@ -186,5 +186,5 @@
     }
   ],
   "replaces": "custom-26ba4c12b3be5822adac76b5f604b34b",
-  "previous_title": "Манай ангийнхан 🏫"
+  "previous_title": "Манай ангийн хамгийн хамгийн 🏫"
 }
