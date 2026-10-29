@@ -11,12 +11,16 @@ await context.route('**/sdk/**',route=>route.fulfill({contentType:'text/javascri
 await context.route('https://test.invalid/**',async route=>{
  const req=route.request(),url=new URL(req.url()),d=req.method()==='POST'?req.postDataJSON():null,voter=req.headers().authorization.split(' ')[1];let json;
  if(url.pathname==='/games/most/packs'){
-  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,visibility:d.visibility||'private',questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
-  else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||p.visibility==='public'||(shared.has(p.id)&&people.some(person=>person.id===voter))).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
+  if(d){const p={id:'custom-'+d.request_id.replaceAll('-',''),title:d.title,creator_id:voter,visibility:d.visibility||'private',voter_visibility:d.voter_visibility||'show',questions:d.questions.map((text,i)=>({id:'q'+(i+1),emoji:'👀',en:text,mn:text}))};packs.push(p);json=p;}
+  else json={packs:packs.filter(p=>p.id==='friends-v1'||p.creator_id===voter||p.visibility==='public'||(shared.has(p.id)&&people.some(person=>person.id===voter))).map(p=>{const ids=[...new Set(rows.filter(r=>r.pack_id===p.id).map(r=>r.voter))];return {...p,answerers:p.voter_visibility==='hide'?[]:people.filter(p=>ids.includes(p.id)),answererCount:ids.length};})};
  }else if(url.pathname.endsWith('/records'))json={records:[{id:'r',createdAt:'2026-10-19T00:00:00Z',participants:people}],nextOffset:null};
  else if(url.pathname.endsWith('/vote')){if(failNextVote){failNextVote=false;await route.fulfill({status:503,json:{error:'Retry'}});return;}if(!rows.some(v=>v.voter===voter&&v.question===d.question&&v.pack_id===d.pack_id))rows.push({...d,voter});json={success:true};}
  else if(d){if(url.pathname.endsWith('/pack'))shared.add(d.pack_id);json={success:true};}
- else json={participants:people,votes:rows.filter(r=>r.pack_id===url.searchParams.get('pack_id'))};
+ else {
+  const pack=packs.find(p=>p.id===url.searchParams.get('pack_id')),ballots=rows.filter(r=>r.pack_id===pack?.id),own=ballots.filter(r=>r.voter===voter),results={};
+  if(pack?.voter_visibility==='hide'&&pack.questions.every(q=>own.some(r=>r.question===q.id)))for(const r of ballots){results[r.question]??={};results[r.question][r.candidate]=(results[r.question][r.candidate]||0)+1;}
+  json={participants:people,pack,votes:pack?.voter_visibility==='hide'?own:ballots,results};
+ }
  await route.fulfill({json});
 });
 const open=async(id,mode='multiplayer')=>{const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}/?player=${id}&mode=${mode}`);return page;};
@@ -85,6 +89,29 @@ try{
  await outsider.getByRole('button',{name:/Everyone can play/}).waitFor();
  assert.equal(packs.find(p=>p.title==='Everyone can play').visibility,'public');
  assert.equal(await outsider.getByRole('button',{name:/Weekend crew/}).count(),0);
+ // Hidden mode survives form changes, completion, reload, and Records.
+ await home.getByRole('button',{name:'＋ Create a pack',exact:true}).click();
+ assert.equal(await home.locator('[name="voter_visibility"][value="show"]').isChecked(),true);
+ await home.locator('[name="voter_visibility"][value="hide"]').check();
+ await home.locator('[name="title"]').fill('Hidden picks');await home.locator('[name="q0"]').fill('Who laughs the loudest?');
+ await home.getByRole('button',{name:'＋ Add question',exact:true}).click();
+ assert.equal(await home.locator('[name="voter_visibility"][value="hide"]').isChecked(),true);
+ await home.locator('[name="q1"]').fill('Who tells the best stories?');
+ await home.screenshot({path:new URL('../artifacts/most-hidden-create.png',import.meta.url).pathname});
+ await home.getByRole('button',{name:'Save pack',exact:true}).click();
+ const hidden=packs.find(p=>p.title==='Hidden picks');assert.equal(hidden.voter_visibility,'hide');
+ rows.push(...hidden.questions.map(q=>({pack_id:hidden.id,question:q.id,voter:'b',candidate:'a'})));
+ await home.getByRole('button',{name:/Hidden picks/}).click();
+ for(let i=0;i<2;i++){await home.locator('[data-choice="b"]').click();await home.getByRole('button',{name:'Next question',exact:true}).click();}
+ await home.locator('.results').waitFor();
+ assert.equal(await home.locator('.results .voters').count(),0);
+ assert.deepEqual(await home.locator('article').first().locator('[role="meter"]').evaluateAll(ns=>ns.map(n=>n.getAttribute('aria-valuenow'))),['50','50']);
+ await home.screenshot({path:new URL('../artifacts/most-hidden-results.png',import.meta.url).pathname});
+ await home.reload();await home.getByRole('button',{name:'📖 Records',exact:true}).click();await home.locator('[data-record="r"]').click();
+ assert.equal(await home.getByRole('button',{name:/Hidden picks/}).locator('.avatar').count(),0);
+ await home.getByRole('button',{name:/Hidden picks/}).click();await home.locator('.results').waitFor();
+ assert.equal(await home.locator('.results .voters').count(),0);
+ assert.equal(await home.locator('article').first().locator('[role="meter"]').count(),2);
  assert.equal(rows.filter(v=>v.pack_id==='friends-v1').length,15);assert.deepEqual(errors,[]);
  console.log('PASS: 14-question pack, independent progress, percentage results, private records, answerer icons, custom creation, invite and reload, isolated votes.');
 }finally{await browser.close();server.close();}

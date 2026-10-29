@@ -70,3 +70,13 @@ Standalone (without SDK) stores answers on the device only.
 retry, reload/resume, replay, HTML escaping, pack/account isolation, EN/MN,
 narrow screens, and promotion to multiplayer. These mocks do not verify live
 SDK persistence; verify saving and reloading separately through the Usions host.
+
+## Voter visibility
+
+New packs choose `voter_visibility: show | hide` (default show for compatibility).
+This is immutable with the pack. Hidden mode returns only the viewer's own
+ballots for progress, plus candidate counts after that viewer completes the pack.
+The server omits other voter/pick links and catalog answerer identities. Results
+and Records show candidate percentages without voter avatars. Existing packs
+retain their current reveal behavior. Both choices are separate from public/private
+pack visibility and do not change solo name answers.
