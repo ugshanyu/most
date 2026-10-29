@@ -32,6 +32,7 @@ try{
  await p.evaluate(()=>window.failRead=true);await p.getByRole('button',{name:'Play solo',exact:true}).click();await p.getByRole('button',{name:'Retry',exact:true}).waitFor();assert.equal(await p.locator('#solo-name').count(),0);
  await p.evaluate(()=>window.failRead=false);await p.getByRole('button',{name:'Retry',exact:true}).click();
  const input=p.getByLabel('Enter a name');await input.waitFor();
+ assert.equal(await p.locator('[data-action="solo-back"]').count(),0);
  assert.equal(await p.getByRole('button',{name:'Next question',exact:true}).isDisabled(),true);
  await input.fill('  Бат  ');await p.evaluate(()=>window.callbacks.connection('disconnected'));
  assert.equal(await input.inputValue(),'  Бат  ');assert.equal(await input.evaluate(n=>n===document.activeElement),true);
@@ -47,7 +48,7 @@ try{
  await p.setViewportSize({width:320,height:640});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await p.evaluate(()=>window.callbacks.assigned({roomId:'r'}));await p.locator('[data-pack="test-solo"]').waitFor();await p.locator('[data-pack="test-solo"]').click();await p.locator('[data-choice="friend"]').waitFor();assert.equal(await p.locator('#solo-name').count(),0);assert.equal(await p.getByRole('button',{name:'Play solo',exact:true}).count(),0);
  const mn=await open('user=other&lang=mn');await mn.locator('[data-pack="test-solo"]').click();await mn.getByRole('button',{name:'Ганцаараа тоглох',exact:true}).click();await mn.getByText('1 / 2',{exact:true}).waitFor();await mn.getByLabel('Нэр оруулах').fill('Сараа');await mn.screenshot({path:new URL('../artifacts/solo-answer-mn.png',import.meta.url).pathname});
- await mn.getByRole('button',{name:'← Буцах',exact:true}).click();await mn.getByRole('button',{name:'← Буцах',exact:true}).click();await mn.locator('[data-pack="test-other"]').click();await mn.getByRole('button',{name:'Ганцаараа тоглох',exact:true}).click();await mn.getByText('1 / 2',{exact:true}).waitFor();assert.equal(await mn.getByLabel('Нэр оруулах').inputValue(),'');
+ assert.equal(await mn.getByRole('button',{name:'← Буцах',exact:true}).count(),0);await mn.reload();await mn.locator('[data-pack="test-other"]').click();await mn.getByRole('button',{name:'Ганцаараа тоглох',exact:true}).click();await mn.getByText('1 / 2',{exact:true}).waitFor();assert.equal(await mn.getByLabel('Нэр оруулах').inputValue(),'');
  const mp=await open('mode=multiplayer');await mp.locator('[data-pack="test-solo"]').click();await mp.locator('[data-choice="friend"]').waitFor();assert.equal(await mp.locator('#solo-name,[data-action="solo"]').count(),0);
  assert.deepEqual(errors,[]);console.log('PASS solo: typed names, save rejection/retry, resume, replay, per-pack/user isolation, escaping, EN/MN, mobile layout, room promotion, multiplayer restriction.');
 }finally{await browser.close();server.close();}

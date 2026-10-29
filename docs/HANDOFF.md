@@ -56,7 +56,8 @@ user's native glass-menu build or take over their active encrypted chat session.
 
 When launched without a multiplayer room, a selected pack offers Play solo,
 Play with friends, and ← Go back (localized in Mongolian). Solo asks for one
-name per question, not a participant roster. Answers use the private per-user,
+name per question, not a participant roster. The solo question form has only
+the name field and Next button; back navigation remains on selection/results. Answers use the private per-user,
 per-service Usion.storage key `most-solo-v1:<packId>`; each Next waits for the
 write acknowledgment before advancing. Failed writes retain the typed name.
 Reopening resumes at the first unanswered question; completion shows a private
