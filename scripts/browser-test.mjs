@@ -2,7 +2,8 @@ import {readFile,mkdir} from 'node:fs/promises';import {createServer} from 'node
 import {questions} from '../src/questions.mjs';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const html=await readFile(new URL('../public/index.html',import.meta.url));
-const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(html)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const forest=await readFile(new URL('../public/forest-clearing-20261029.webp',import.meta.url));
+const server=createServer((req,res)=>{const asset=req.url?.startsWith('/forest-clearing-');res.setHeader('Content-Type',asset?'image/webp':'text/html');res.end(asset?forest:html)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844}});const errors=[],rows=[],people=['a','b','c','d','e','f','g','h','i'].map(id=>({id,name:id}));
 let failNextVote=false;
 const shared=new Set();
