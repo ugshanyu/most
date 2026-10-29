@@ -4,11 +4,9 @@ Dry run by default. Commit and push the JSON before --apply. Existing packs
 must match exactly: never rewrite question IDs/text attached to saved ballots.
 """
 import argparse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import json
 from pathlib import Path
-import httpx
-from jose import jwt
 from dotenv import dotenv_values
 from pymongo import MongoClient
 
@@ -43,17 +41,5 @@ if a.apply:
             **pack, 'created_at': datetime.now(timezone.utc)}}, upsert=True)
     saved = db.most_packs.find_one({'id': pack['id']})
     assert all(saved.get(k) == value for k, value in pack.items())
-    # Read through the deployed endpoint using a short-lived, Most-scoped owner
-    # token, following the repository's production verification pattern.
-    token = jwt.encode({'sub': owner['id'], 'purpose': 'iframe', 'service_id': 'most',
-                        'exp': datetime.now(timezone.utc) + timedelta(minutes=5)},
-                       v['SECRET_KEY'], algorithm=v.get('ALGORITHM') or 'HS256')
-    with httpx.Client(timeout=30, headers={'User-Agent': 'Mozilla/5.0',
-                       'Authorization': 'Bearer ' + token}) as http:
-        response = http.get('https://mobile.mongolai.mn/games/most/packs')
-        response.raise_for_status()
-        live = next(x for x in response.json()['packs'] if x['id'] == pack['id'])
-        assert all(live[k] == value for k, value in pack.items())
-        assert response.headers.get('cache-control') == 'private, no-store'
-    print('Verified deployed pack catalog: public, 30 exact questions, all emoji fields preserved.')
+    print('Published and read back all 30 questions. Verify the deployed catalog with the production backend runtime.')
 client.close()
